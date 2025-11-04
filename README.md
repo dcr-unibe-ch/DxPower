@@ -1,13 +1,19 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
 # DxPower
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
-The goal of DxPower is to provide functions for power analysis in diagnostic studies.
+The goal of DxPower is to provide functions for power analysis in
+diagnostic studies.
 
 ## Installation
 
-You can install the development version of DxPower from [GitHub](https://github.com/) with:
+You can install the development version of DxPower from
+[GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
@@ -20,5 +26,5 @@ This is a basic example which shows you how to solve a common problem:
 
 ``` r
 library(DxPower)
-# Example code will go here
+## basic example code
 ```
