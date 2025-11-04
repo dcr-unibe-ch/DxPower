@@ -4,7 +4,6 @@
 # DxPower
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
 The goal of DxPower is to provide functions for power analysis in
