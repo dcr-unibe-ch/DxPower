@@ -1,6 +1,12 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+``` r
+devtools::load_all()
+#> ℹ Loading DxPower
+#> Warning: le package 'testthat' a été compilé avec la version R 4.5.2
+```
+
 # DxPower
 
 <!-- badges: start -->
@@ -8,6 +14,10 @@
 
 The goal of DxPower is to provide functions for power analysis in
 diagnostic studies.
+
+The methodology is based on asymptotic normal approximations and an
+intersection–union testing framework, where both sensitivity and
+specificity must reject their respective null hypotheses.
 
 ## Installation
 
@@ -19,11 +29,226 @@ You can install the development version of DxPower from
 devtools::install_github("CTU-Bern/DxPower")
 ```
 
+## Statistical Framework
+
+We consider one-sided superiority hypotheses:
+
+For sensitivity:
+
+$$
+H_{0,Se}: Se \le Se_0
+\quad\text{vs}\quad
+H_{1,Se}: Se > Se_0
+$$
+
+For specificity:
+
+$$
+H_{0,Sp}: Sp \le Sp_0
+\quad\text{vs}\quad
+H_{1,Sp}: Sp > Sp_0
+$$
+
+Each tested at level $\alpha = 0.025$.
+
+Overall power is defined as:
+
+$$
+Power_{overall} = Power_{Se} \times Power_{Sp}
+$$
+
+assuming asymptotic independence.
+
+## Functions
+
+### `power_opt()`
+
+Computes the required total sample size for a desired overall power and
+and an assumed initial true prevalence $\pi$ in a confirmatory
+diagnostic accuracy study with co-primary endpoints.
+
+#### Sample Size Formula
+
+For sensitivity:
+
+$$
+N_{Se} =
+\frac{\left(
+z_{1-\alpha} \sqrt{Se_0(1-Se_0)}
++
+z_{1-\beta_{Se}} \sqrt{Se_1(1-Se_1)}
+\right)^2}
+{\pi \times (Se_1 - Se_0)^2}=\frac{n_{Se}}{\pi}
+$$
+
+For specificity:
+
+$$
+N_{Sp} =
+\frac{\left(
+z_{1-\alpha} \sqrt{Sp_0(1-Sp_0)}
++
+z_{1-\beta_{Sp}} \sqrt{Sp_1(1-Sp_1)}
+\right)^2}
+{(1-\pi) \times (Sp_1 - Sp_0)^2}=\frac{n_{Sp}}{1-\pi}
+$$
+
+where:
+
+- $z_{1-\alpha}$ is the one-sided critical value  
+- $z_{1-\beta}$ corresponds to the endpoint-specific power  
+- $Se_0, Sp_0$ are null values  
+- $Se_1, Sp_1$ are alternative values
+- $\pi$ is the prevalence; determines the allocation of diseased and
+  non-diseased subjects.
+
+#### Overall Power Constraint
+
+Under the intersection–union framework, overall power is defined as:
+
+$$
+(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})\\
+Power_{Se} \times Power_{Sp} = Power_{Overall}
+$$
+
+**NOTE** Since overall power equals the product of the two
+endpoint-specific powers, individual endpoint powers will typically be
+larger than the target overall power.
+
+#### Root-Finding Condition
+
+Because both endpoints must be powered simultaneously(mostly higher
+power thanthe overall power ), the function determines the sensitivity
+power $Power_{Se}$ such that:
+
+$$
+N_{Se}(1-\beta_{Se}) = N_{Sp}(1-\beta_{Sp})
+$$
+
+with
+
+$$
+\beta_{Sp} = 1- \frac{1-\beta_{Overall}}{1-\beta_{Sp}}
+$$
+
+This ensures that:
+
+- Both endpoints require the same total sample size
+- The overall power equals the desired target
+- The study is optimally balanced
+
+The resulting total sample size is $N_{total} = N_{Se} + N_{Sp}$ with
+allocation driven by prevalence.
+
+### `power_diag()`
+
+Computes the achieved overall power for a fixed total sample size.
+
+#### Power Formula
+
+For a total sample size $N$ and assumed initial true prevalence $\pi$:
+
+$$
+N_{Se} = N_{total} \cdot \pi
+\quad\text{and}\quad
+N_{Sp} = N_{total} \cdot (1 - \pi)
+$$
+
+where $\pi$ is prevalence.
+
+#### Endpoint-Specific Power
+
+For sensitivity:
+
+$$
+z_{\beta_{Se}} =
+\frac{
+\sqrt{N_{Se}}(Se_1 - Se_0)
+-
+z_{1-\alpha}\sqrt{Se_0(1-Se_0)}
+}{
+\sqrt{Se_1(1-Se_1)}
+}
+$$
+
+$$
+Power_{Se} = \Phi(z_{\beta_{Se}})
+$$
+
+Similarly for specificity:
+
+$$
+z_{\beta_{Sp}} =
+\frac{
+\sqrt{N_{Sp}}(Sp_1 - Sp_0)
+-
+z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}
+}{
+\sqrt{Sp_1(1-Sp_1)}
+}
+$$
+
+$$
+Power_{Sp} = \Phi(z_{\beta_{Sp}})
+$$
+
+The resulting overall power is
+$Power_{overall} = Power_{Se} \times Power_{Sp}$
+
+**Remark** Both functions rely on the same asymptotic normal
+approximation framework, ensuring mathematical consistency between
+sample size determination and power evaluation.
+
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+### Required Sample Size
 
 ``` r
-library(DxPower)
-## basic example code
+
+res <- power_opt(
+  se1 = 0.85, sp1 = 0.85,
+  se0 = 0.70, sp0 = 0.65,
+  alpha = 0.025,
+  prev = 0.5,
+  pwr = 0.80
+)
+
+res
+#> $pwr_se
+#> [1] 0.820557
+#> 
+#> $pwr_sp
+#> [1] 0.9749476
+#> 
+#> $N_se
+#> [1] 66.77915
+#> 
+#> $N_sp
+#> [1] 66.77915
+#> 
+#> $N_tot
+#> [1] 133.5583
+```
+
+### Achieved Power for Fixed Sample Size
+
+``` r
+devtools::load_all()
+#> ℹ Loading DxPower
+pow<-power_diag(
+  N = res$N_tot,
+  se1 = 0.85,sp1 = 0.85, 
+  se0 = 0.70,sp0 = 0.65,
+  alpha = 0.025,
+  prev = 0.5
+)
+pow
+#> $overall
+#> [1] 0.8
+#> 
+#> $pwr_se
+#> [1] 0.820557
+#> 
+#> $pwr_sp
+#> [1] 0.9749476
 ```
