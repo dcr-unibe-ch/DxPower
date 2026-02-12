@@ -107,9 +107,8 @@ where:
 Under the intersection–union framework, overall power is defined as:
 
 $$
-(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})\\
-Power_{Se} \times Power_{Sp} = Power_{Overall}
-$$
+(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})
+$$ $$Power_{Se} \times Power_{Sp} = Power_{Overall}$$
 
 **NOTE** Since overall power equals the product of the two
 endpoint-specific powers, individual endpoint powers will typically be
@@ -161,31 +160,17 @@ where $\pi$ is prevalence.
 For sensitivity:
 
 $$
-z_{\beta_{Se}} =
-\frac{
-\sqrt{N_{Se}}(Se_1 - Se_0)
--
-z_{1-\alpha}\sqrt{Se_0(1-Se_0)}
-}{
-\sqrt{Se_1(1-Se_1)}
-}
+z_{\beta_{Se}} = \frac{\sqrt{N_{Se}}|Se_1 - Se_0|\pi  - z_{1-\alpha}\sqrt{Se_0(1-Se_0)}}{\sqrt{Se_1(1-Se_1)}}
 $$
 
 $$
 Power_{Se} = \Phi(z_{\beta_{Se}})
 $$
 
-Similarly for specificity:
+Similar for Specificity:
 
 $$
-z_{\beta_{Sp}} =
-\frac{
-\sqrt{N_{Sp}}(Sp_1 - Sp_0)
--
-z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}
-}{
-\sqrt{Sp_1(1-Sp_1)}
-}
+z_{\beta_{Sp}} = \frac{\sqrt{N_{Sp}}|Sp_1 - Sp_0|(1-\pi) - z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}}{\sqrt{Sp_1(1-Sp_1)}}
 $$
 
 $$
@@ -193,11 +178,15 @@ Power_{Sp} = \Phi(z_{\beta_{Sp}})
 $$
 
 The resulting overall power is
-$Power_{overall} = Power_{Se} \times Power_{Sp}$
 
-**Remark** Both functions rely on the same asymptotic normal
-approximation framework, ensuring mathematical consistency between
-sample size determination and power evaluation.
+$$
+Power_{overall} = Power_{Se} \times Power_{Sp}
+$$
+
+**Remark**  
+Both functions rely on the same asymptotic normal approximation
+framework, ensuring mathematical consistency between sample size
+determination and power evaluation.
 
 ## Example
 
