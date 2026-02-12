@@ -171,9 +171,15 @@ z_{1-\alpha}\sqrt{Se_0(1-Se_0)}
 }
 $$
 
+
+
+
+
+
 $$
-Power_{Se} = \Phi(z_{\beta_{Se}})
 $$
+
+
 
 Similarly for specificity:
 
@@ -187,6 +193,9 @@ z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}
 \sqrt{Sp_1(1-Sp_1)}
 }
 $$
+
+
+
 
 $$
 Power_{Sp} = \Phi(z_{\beta_{Sp}})
