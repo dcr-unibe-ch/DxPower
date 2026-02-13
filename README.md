@@ -75,18 +75,12 @@ We consider a confirmatory diagnostic accuracy study with:
 
 The number of diseased (cases) and non-diseased (control) subjects is:
 
-<<<<<<< HEAD
+
 $$N_{Se}=N\pi,  N_{Sp}=N(1-\pi)$$
 
 Diseased and non-diseased subjects form disjoint subgroups. Under
 standard binomial sampling assumptions, the corresponding estimators of
 sensitivity and specificity are asymptotically independent.
-=======
-$$N_{Se}=N\pi,  N_{Sp}=N(1-\pi)$$ Diseased and non-diseased subjects
-form disjoint subgroups. Under standard binomial sampling assumptions,
-the corresponding estimators of sensitivity and specificity are
-asymptotically independent.
->>>>>>> dbdcb474e44919b9d394b60fc3a9069351795616
 
 ### Hypotheses
 
@@ -120,11 +114,8 @@ level $\alpha$ without multiplicity adjustment.
 Both endpoints are evaluated using a Wald-type normal approximation.
 Under large-sample theory:
 
-<<<<<<< HEAD
+
 $$\hat{Se} \sim N\left( Se,\; \frac{Se(1-Se)}{N_{Se}} \right),\hat{Sp} \sim N\left( Sp,\; \frac{Sp(1-Sp)}{N_{Sp}} \right) $$
-=======
-$$\hat{Se} \sim N\!\left( Se,\; \frac{Se(1-Se)}{N_{Se}} \right),\hat{Sp} \sim N\!\left( Sp,\; \frac{Sp(1-Sp)}{N_{Sp}} \right) $$
->>>>>>> dbdcb474e44919b9d394b60fc3a9069351795616
 
 The sample size formula uses the classical normal approximation with:
 
