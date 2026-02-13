@@ -2,7 +2,6 @@
 output: github_document
 ---
 
-
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -46,7 +45,7 @@ The methodology is based on asymptotic normal approximations and an intersection
 
 You can install the development version of DxPower from [GitHub](https://github.com/) with:
 
-``` r
+```{r}
 # install.packages("devtools")
 devtools::install_github("CTU-Bern/DxPower")
 ```
