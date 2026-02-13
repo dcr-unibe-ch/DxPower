@@ -1,4 +1,4 @@
-#' Author: Aiensh Sewak (DCR Bern)
+#' @author Ainesh Sewak (DCR Bern)
 
 #' Optimal Power Allocation for Sensitivity and Specificity
 #'

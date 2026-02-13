@@ -1,4 +1,4 @@
-#' Author: Maia Muresan (DCR Bern)
+#' @author Maia Muresan (DCR Bern)
 
 
 #' Overall Power for Confirmatory Diagnostic Accuracy Study

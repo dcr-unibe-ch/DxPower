@@ -1,13 +1,29 @@
 Package: DxPower
 Type: Package
-Title: What the Package Does (One Line, Title Case)
+Title: Sample Size and Power Calculations for Confirmatory Diagnostic Accuracy Studies
 Version: 0.1.0
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Authors@R: 
+    c(
+      person("Maia", "Muresan", 
+             email = "iulia-maia.muresan@unibe.ch", 
+             role = c("aut", "cre")),
+      person("Ainesh", "Sewak", 
+             email = "ainesh.sewak@unibe.ch", 
+             role = c("aut", "cre"))
+    )
+Description: DxPower provides methodology for sample size determination and 
+    power evaluation in confirmatory studies with co-primary endpoints. 
+    The package is designed to support binary and continuous outcomes, 
+    including diagnostic accuracy measures such as sensitivity and 
+    specificity. It accommodates superiority and non-inferiority 
+    hypotheses and combination testing strategies within an 
+    intersection-union testing framework. The methods are based on 
+    asymptotic theory and are structured to allow flexible extension 
+    to additional endpoint types and study objectives.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.0.0
+RoxygenNote: 7.3.3
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
