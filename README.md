@@ -17,7 +17,7 @@ calculation in confirmatory diagnostic accuracy trials.
 
 The methodology is based on asymptotic normal approximations and an
 intersection–union testing framework, where both co-primary endpoints
-(i.e. sensitivity and specificity) must reject their respective null
+(i.e.sensitivity and specificity) must reject their respective null
 hypotheses.
 
 ## Contents
