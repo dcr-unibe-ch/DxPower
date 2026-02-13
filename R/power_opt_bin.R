@@ -30,7 +30,7 @@
 
 
 
-power_opt <- function(N,
+power_opt_bin <- function(N,
                        prev,
                        se1, se0,
                        sp1, sp0,

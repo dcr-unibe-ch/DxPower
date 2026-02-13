@@ -1,12 +1,12 @@
 # This test verifies mathematical inversion consistency:
-# N obtained from power_opt should return target power
-# when evaluated with power_diag.
+# N obtained from ss_opt_bin should return target power
+# when evaluated with power_opt_bin
 
 
 
-test_that("power_opt and power_diag are consistent", {
+test_that("ss_opt_bin and power_opt_bin are consistent", {
 
-  res <- power_opt(
+  res <- ss_opt_bin(
     se1 = 0.85, sp1 = 0.85,
     se0 = 0.70, sp0 = 0.65,
     alpha = 0.025,
@@ -16,7 +16,7 @@ test_that("power_opt and power_diag are consistent", {
 
   N_star <- res$N_tot
 
-  pow <- power_diag(
+  pow <- power_opt_bin(
     N = N_star,
     se1 = 0.85,
     se0 = 0.70,

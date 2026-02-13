@@ -18,7 +18,7 @@
 
 
 
-ss_opt <- function(se1, se0, sp1, sp0, alpha = 0.025, prev = 0.5, pwr = 0.8) {
+ss_opt_bin <- function(se1, se0, sp1, sp0, alpha = 0.025, prev = 0.5, pwr = 0.8) {
   # Fixed values
   qz <- qnorm(alpha, lower.tail = FALSE)
   sd_se0 <- sqrt(se0 * (1 - se0))

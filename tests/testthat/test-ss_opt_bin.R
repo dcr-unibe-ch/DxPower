@@ -1,6 +1,6 @@
-test_that("power_opt returns correct structure", {
+test_that("ss_opt_bin returns correct structure", {
 
-  res <- power_opt(
+  res <- ss_opt_bin(
     se1 = 0.85,
     se0 = 0.70,
     sp1 = 0.85,
