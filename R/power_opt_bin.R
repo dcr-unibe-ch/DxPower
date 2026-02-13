@@ -30,7 +30,7 @@
 
 
 
-power_diag <- function(N,
+power_opt <- function(N,
                        prev,
                        se1, se0,
                        sp1, sp0,
