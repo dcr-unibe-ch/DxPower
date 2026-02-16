@@ -1,86 +1,118 @@
-#' Overall Power for Confirmatory Diagnostic Accuracy Study
+#' Overall Power for Co-Primary Diagnostic Accuracy Endpoints
 #'
-#' Computes the overall power for co-primary superiority tests on
-#' sensitivity and specificity using a normal approximation.
+#' Computes the achieved overall power for a confirmatory diagnostic
+#' accuracy study with co-primary endpoints (sensitivity and specificity)
+#' under a superiority hypothesis framework.
 #'
-#' The function assumes one-sided hypothesis tests for:
-#'   H0: Se <= Se0  vs  H1: Se > Se0
-#'   H0: Sp <= Sp0  vs  H1: Sp > Sp0
+#' Both null hypotheses must be rejected according to an
+#' intersection–union test (IUT) principle. The overall power is defined as
+#' the joint probability of rejecting both null hypotheses.
 #'
-#' Overall power is calculated under an intersection-union framework,
-#' i.e., both tests must reject the null hypothesis.
+#' Endpoint-specific powers are computed using large-sample normal
+#' approximations on either the Wald scale or the logit scale.
 #'
-#' @param N Total sample size
-#' @param prev Disease prevalence (0 < prev < 1)
-#' @param se1 Sensitivity under the alternative hypothesis
-#' @param se0 Sensitivity under the null hypothesis
-#' @param sp1 Specificity under the alternative hypothesis
-#' @param sp0 Specificity under the null hypothesis
-#' @param alpha One-sided type I error (default 0.025)
+#'
+#' @details
+#' The study population is partitioned into diseased and non-diseased
+#' subgroups according to the assumed prevalence. Under binomial sampling,
+#' the estimators of sensitivity and specificity are asymptotically
+#' independent, which justifies the product formulation of overall power.
+#'
+#'
+#' @param N Total sample size.
+#' @param prev Disease prevalence (0 < prev < 1).
+#' @param se1 Sensitivity under the alternative hypothesis.
+#' @param se0 Sensitivity under the null hypothesis.
+#' @param sp1 Specificity under the alternative hypothesis.
+#' @param sp0 Specificity under the null hypothesis.
+#' @param alpha Type I error level.
+#' @param ci_method Normal approximation method: "wald" (default) or "logit".
+#' @param alternative "one.sided" (default) or "two.sided".
 #' @author Maia Muresan (DCR Bern)
-#' @return A named list containing:
-#'   \item{overall}{Overall power}
-#'   \item{pwr_se}{Power for sensitivity}
-#'   \item{pwr_sp}{Power for specificity}
-#'
+#' @return An object of class "dx_bin".
 #' @export
 
 
-
 power_opt_bin <- function(N,
-                       prev,
-                       se1, se0,
-                       sp1, sp0,
-                       alpha = 0.025) {
+                          prev,
+                          se1, se0,
+                          sp1, sp0,
+                          alpha = 0.025, ci_method=c("wald", "logit"),
+                          alternative=c("one.sided","two.sided")
+) {
 
+  ci_method   <- match.arg(ci_method)
+  alternative <- match.arg(alternative)
   # -----------------------------
   # Input validation
   # -----------------------------
+  if (N <= 0) stop("N must be positive.")
+  if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
+  if (se1 <= se0) stop("se1 must be greater than se0.")
+  if (sp1 <= sp0) stop("sp1 must be greater than sp0.")
+  if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
 
-  if (N <= 0)
-    stop("N must be positive.")
-
-  if (prev <= 0 || prev >= 1)
-    stop("Prevalence must be between 0 and 1.")
-
-  if (se1 <= se0)
-    stop("se1 must be greater than se0 for superiority testing.")
-
-  if (sp1 <= sp0)
-    stop("sp1 must be greater than sp0 for superiority testing.")
-
-  if (alpha <= 0 || alpha >= 1)
-    stop("alpha must be between 0 and 1.")
+  if (alternative == "two.sided" && alpha < 0.05) {
+    warning(
+      "Two-sided alpha < 0.05 is conservative. ",
+      "Typical confirmatory superiority trials use two-sided alpha = 0.05 ",
+      "(equivalent to one-sided 0.025)."
+    )
+  }
 
   # -----------------------------
   # Common quantities
   # -----------------------------
+  #critical value
+  z_alpha <- if (alternative == "one.sided") {
+    qnorm(1 - alpha)
+  } else {
+    qnorm(1 - alpha/2)
+  }
 
-  z_alpha <- qnorm(1 - alpha)
-
+  #sample sizes per subgroup
   Nd <- N * prev           # number of diseased
   Nh <- N * (1 - prev)     # number of non-diseased
 
-  # -----------------------------
-  # Sensitivity power
-  # -----------------------------
+  logit <- function(p) log(p / (1 - p))
 
-  sd_se0 <- sqrt(se0 * (1 - se0))
-  sd_se1 <- sqrt(se1 * (1 - se1))
-  delta_se <- se1 - se0
 
-  z_beta_se <- (sqrt(Nd) * delta_se - z_alpha * sd_se0) / sd_se1
+  # -----------------------------
+  # Define scale-specific quantities
+  # -----------------------------
+  if (ci_method == "wald") {
+
+    delta_se <- se1 - se0
+    delta_sp <- sp1 - sp0
+
+    se_se0 <- sqrt(se0 * (1 - se0))
+    se_se1 <- sqrt(se1 * (1 - se1))
+
+    se_sp0 <- sqrt(sp0 * (1 - sp0))
+    se_sp1 <- sqrt(sp1 * (1 - sp1))
+
+
+  } else if (ci_method == "logit") {
+
+    delta_se <- logit(se1) - logit(se0)
+    delta_sp <- logit(sp1) - logit(sp0)
+
+    se_se0 <- sqrt(1 / (se0 * (1 - se0)))
+    se_se1 <- sqrt(1 / (se1 * (1 - se1)))
+
+    se_sp0 <- sqrt(1 / (sp0 * (1 - sp0)))
+    se_sp1 <- sqrt(1 / (sp1 * (1 - sp1)))
+  }
+
+  # -----------------------------
+  # Endpoint-specific power
+  # -----------------------------
+  #Sensitivity power
+  z_beta_se <- (sqrt(Nd) * delta_se - z_alpha * se_se0) / se_se1
   pwr_se <- pnorm(z_beta_se)
 
-  # -----------------------------
   # Specificity power
-  # -----------------------------
-
-  sd_sp0 <- sqrt(sp0 * (1 - sp0))
-  sd_sp1 <- sqrt(sp1 * (1 - sp1))
-  delta_sp <- sp1 - sp0
-
-  z_beta_sp <- (sqrt(Nh) * delta_sp - z_alpha * sd_sp0) / sd_sp1
+  z_beta_sp <- (sqrt(Nh) * delta_sp - z_alpha * se_sp0) / se_sp1
   pwr_sp <- pnorm(z_beta_sp)
 
   # -----------------------------
@@ -89,13 +121,25 @@ power_opt_bin <- function(N,
 
   overall <- pwr_se * pwr_sp
 
-  return(list(
+
+  # -----------------------------
+  # Return structured object
+  # -----------------------------
+  result <- list(
+    alternative=alternative,
+    alpha = alpha,
+    framework = "co-primary (IUT)",
+    type = "power",
+    ci_method = ci_method,
     overall = overall,
     pwr_se = pwr_se,
-    pwr_sp = pwr_sp
-  ))
+    pwr_sp = pwr_sp,
+    N_se = Nd,
+    N_sp = Nh,
+    N_tot = N,
+    prev = prev
+  )
+
+  class(result) <- "dx_bin"
+  return(result)
 }
-
-
-
-
