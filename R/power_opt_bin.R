@@ -1,6 +1,3 @@
-#' @author Maia Muresan (DCR Bern)
-
-
 #' Overall Power for Confirmatory Diagnostic Accuracy Study
 #'
 #' Computes the overall power for co-primary superiority tests on
@@ -20,7 +17,7 @@
 #' @param sp1 Specificity under the alternative hypothesis
 #' @param sp0 Specificity under the null hypothesis
 #' @param alpha One-sided type I error (default 0.025)
-#'
+#' @author Maia Muresan (DCR Bern)
 #' @return A named list containing:
 #'   \item{overall}{Overall power}
 #'   \item{pwr_se}{Power for sensitivity}

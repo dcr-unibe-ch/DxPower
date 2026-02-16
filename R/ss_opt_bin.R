@@ -1,5 +1,3 @@
-#' @author Ainesh Sewak (DCR Bern)
-
 #' Optimal Power Allocation for Sensitivity and Specificity
 #'
 #' Computes optimal allocation of power between sensitivity and specificity
@@ -12,7 +10,7 @@
 #' @param alpha One-sided type I error
 #' @param prev Disease prevalence
 #' @param pwr Overall desired power
-#'
+#' @author Ainesh Sewak (DCR Bern)
 #' @return A list containing allocated powers and required sample sizes
 #' @export
 
