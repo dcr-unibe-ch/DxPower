@@ -2,11 +2,25 @@
 % Please edit documentation in R/ss_opt_bin.R
 \name{ss_opt_bin}
 \alias{ss_opt_bin}
-\title{Optimal Power Allocation for Sensitivity and Specificity}
+\title{Optimal Sample Size Determination for Co-Primary Diagnostic Accuracy Endpoints}
 \usage{
-ss_opt_bin(se1, se0, sp1, sp0, alpha = 0.025, prev = 0.5, pwr = 0.8)
+ss_opt_bin(
+  pwr,
+  prev,
+  se1,
+  se0,
+  sp1,
+  sp0,
+  alpha = 0.025,
+  ci_method = c("wald", "logit"),
+  alternative = c("one.sided", "two.sided")
+)
 }
 \arguments{
+\item{pwr}{Overall desired power}
+
+\item{prev}{Disease prevalence}
+
 \item{se1}{Sensitivity under alternative hypothesis}
 
 \item{se0}{Sensitivity under null hypothesis}
@@ -15,19 +29,31 @@ ss_opt_bin(se1, se0, sp1, sp0, alpha = 0.025, prev = 0.5, pwr = 0.8)
 
 \item{sp0}{Specificity under null hypothesis}
 
-\item{alpha}{One-sided type I error}
+\item{alpha}{Type I error level.}
 
-\item{prev}{Disease prevalence}
+\item{ci_method}{Normal approximation method: "wald" (default) or "logit".}
 
-\item{pwr}{Overall desired power}
+\item{alternative}{"one.sided" (default) or "two.sided".}
 }
 \value{
-A list containing allocated powers and required sample sizes
+An object of class "dx_bin".
 }
 \description{
-Computes optimal allocation of power between sensitivity and specificity
-tests such that required sample sizes are equal.
+Computes the required total sample size for a confirmatory diagnostic
+accuracy study with co-primary endpoints (sensitivity and specificity)
+under a superiority hypothesis framework.
+}
+\details{
+The function determines the optimal allocation of endpoint-specific
+powers such that both sensitivity and specificity require the same
+total sample size while achieving a prespecified overall power.
+
+Overall power is defined under an intersection–union test (IUT) framework,
+i.e., both null hypotheses must be rejected:
+
+#' Sample size formulas are based on large-sample normal approximations
+using either the Wald scale or the logit-transformed scale.
 }
 \author{
-Ainesh Sewak (DCR Bern)
+Ainesh Sewak & Maia Muresan(DCR Bern)
 }

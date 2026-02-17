@@ -2,42 +2,60 @@
 % Please edit documentation in R/power_opt_bin.R
 \name{power_opt_bin}
 \alias{power_opt_bin}
-\title{Overall Power for Confirmatory Diagnostic Accuracy Study}
+\title{Overall Power for Co-Primary Diagnostic Accuracy Endpoints}
 \usage{
-power_opt_bin(N, prev, se1, se0, sp1, sp0, alpha = 0.025)
+power_opt_bin(
+  N,
+  prev,
+  se1,
+  se0,
+  sp1,
+  sp0,
+  alpha = 0.025,
+  ci_method = c("wald", "logit"),
+  alternative = c("one.sided", "two.sided")
+)
 }
 \arguments{
-\item{N}{Total sample size}
+\item{N}{Total sample size.}
 
-\item{prev}{Disease prevalence (0 < prev < 1)}
+\item{prev}{Disease prevalence (0 < prev < 1).}
 
-\item{se1}{Sensitivity under the alternative hypothesis}
+\item{se1}{Sensitivity under the alternative hypothesis.}
 
-\item{se0}{Sensitivity under the null hypothesis}
+\item{se0}{Sensitivity under the null hypothesis.}
 
-\item{sp1}{Specificity under the alternative hypothesis}
+\item{sp1}{Specificity under the alternative hypothesis.}
 
-\item{sp0}{Specificity under the null hypothesis}
+\item{sp0}{Specificity under the null hypothesis.}
 
-\item{alpha}{One-sided type I error (default 0.025)}
+\item{alpha}{Type I error level.}
+
+\item{ci_method}{Normal approximation method: "wald" (default) or "logit".}
+
+\item{alternative}{"one.sided" (default) or "two.sided".}
 }
 \value{
-A named list containing:
-  \item{overall}{Overall power}
-  \item{pwr_se}{Power for sensitivity}
-  \item{pwr_sp}{Power for specificity}
+An object of class "dx_bin".
 }
 \description{
-Computes the overall power for co-primary superiority tests on
-sensitivity and specificity using a normal approximation.
+Computes the achieved overall power for a confirmatory diagnostic
+accuracy study with co-primary endpoints (sensitivity and specificity)
+under a superiority hypothesis framework.
 }
 \details{
-The function assumes one-sided hypothesis tests for:
-  H0: Se <= Se0  vs  H1: Se > Se0
-  H0: Sp <= Sp0  vs  H1: Sp > Sp0
+Both null hypotheses must be rejected according to an
+intersection–union test (IUT) principle. The overall power is defined as
+the joint probability of rejecting both null hypotheses.
 
-Overall power is calculated under an intersection-union framework,
-i.e., both tests must reject the null hypothesis.
+Endpoint-specific powers are computed using large-sample normal
+approximations on either the Wald scale or the logit scale.
+
+
+The study population is partitioned into diseased and non-diseased
+subgroups according to the assumed prevalence. Under binomial sampling,
+the estimators of sensitivity and specificity are asymptotically
+independent, which justifies the product formulation of overall power.
 }
 \author{
 Maia Muresan (DCR Bern)
