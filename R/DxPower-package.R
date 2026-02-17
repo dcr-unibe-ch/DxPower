@@ -2,6 +2,5 @@
 #'
 #' This package provides functions for power analysis in diagnostic studies.
 #'
-#' @docType _PACKAGE
 #' @name DxPower-package
-NULL
+"_PACKAGE"
