@@ -2,7 +2,7 @@
 % Please edit documentation in R/power_opt_bin.R
 \name{power_opt_bin}
 \alias{power_opt_bin}
-\title{Overall Power for Co-Primary Diagnostic Accuracy Endpoints}
+\title{Power calculation for Co-Primary Diagnostic Accuracy Endpoints}
 \usage{
 power_opt_bin(
   N,
@@ -36,26 +36,67 @@ power_opt_bin(
 \item{alternative}{"one.sided" (default) or "two.sided".}
 }
 \value{
-An object of class "dx_bin".
+An object of class `"dx_bin"` containing:
+\itemize{
+  \item design specifications (design specifications (alpha level, testing framework, CI method)
+  \item achieved overall power,
+  \item endpoint-specific powers,
+  \item subgroup sample sizes.
+}
 }
 \description{
-Computes the achieved overall power for a confirmatory diagnostic
+The function determines the achieved overall power for a confirmatory diagnostic
 accuracy study with co-primary endpoints (sensitivity and specificity)
-under a superiority hypothesis framework.
+for a fixed total sample size.
+
+Both endpoints are tested for superiority against fixed null values.
+Study success requires rejection of both null hypotheses.
+Overall power is therefore defined under an intersection–union
+testing (IUT) framework, meaning that both tests must be significant.
+Under this framework, the global Type I error rate is controlled
+at level \eqn{\alpha} without multiplicity adjustment.
+
+The calculation explicitly incorporates the assumed disease prevalence,
+which determines the expected number of diseased and non-diseased subjects.
 }
 \details{
-Both null hypotheses must be rejected according to an
-intersection–union test (IUT) principle. The overall power is defined as
-the joint probability of rejecting both null hypotheses.
+Let \eqn{\pi} denote the assumed disease prevalence. The study population
+is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
+(\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
 
-Endpoint-specific powers are computed using large-sample normal
-approximations on either the Wald scale or the logit scale.
+Endpoint-specific powers are derived from the asymptotic normal
+test statistics corresponding to the sample size formulas.
+The implementation uses large-sample approximations for binomial
+proportions based on either:
+\itemize{
+  \item the Wald approximation on the probability scale, or
+  \item the logit-transformed normal approximation.
+}
 
+Under standard binomial sampling assumptions, the estimators of
+sensitivity and specificity are asymptotically independent.
 
-The study population is partitioned into diseased and non-diseased
-subgroups according to the assumed prevalence. Under binomial sampling,
-the estimators of sensitivity and specificity are asymptotically
-independent, which justifies the product formulation of overall power.
+Overall power is therefore computed as:
+
+\deqn{
+Power_{overall} = Power_{Se} \times Power_{Sp}.
+}
+
+The function returns the achieved endpoint-specific powers and
+their joint probability for the specified total sample size.
+}
+\examples{
+power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025)
+power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+}
+\references{
+Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
+based on the prevalence in a single-arm confirmatory diagnostic accuracy
+study. *Statistical Methods in Medical Research*, 29(10), 2958–2971.
+\doi{10.1177/0962280220913588}
+The power calculation implemented in this function is consistent with
+the asymptotic normal framework underlying the sample size methodology
+described in the above reference.
 }
 \author{
 Maia Muresan (DCR Bern)

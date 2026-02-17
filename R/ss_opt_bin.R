@@ -1,19 +1,62 @@
-#' Optimal Sample Size Determination for Co-Primary Diagnostic Accuracy Endpoints
+#' Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints
 #'
-#' Computes the required total sample size for a confirmatory diagnostic
-#' accuracy study with co-primary endpoints (sensitivity and specificity)
-#' under a superiority hypothesis framework.
+#' @description
+#' The function determines the minimal total sample size required to achieve
+#' a prespecified overall power in a confirmatory diagnostic accuracy study with
+#' co-primary endpoints (sensitivity and specificity).
 #'
-#' The function determines the optimal allocation of endpoint-specific
-#' powers such that both sensitivity and specificity require the same
-#' total sample size while achieving a prespecified overall power.
+#' Both endpoints must demonstrate superiority over fixed null values.
+#' Overall power is defined under an intersection–union testing (IUT)
+#' framework, meaning that both null hypotheses must be rejected for
+#' the study to be successful. Under this framework, the global Type I
+#' error rate is controlled at level \eqn{\alpha} without multiplicity
+#' adjustment.
 #'
-#' Overall power is defined under an intersection–union test (IUT) framework,
-#' i.e., both null hypotheses must be rejected:
+#' The calculation explicitly accounts for disease prevalence, which
+#' determines the expected number of diseased and non-diseased subjects.
 #'
-#'#' Sample size formulas are based on large-sample normal approximations
-#' using either the Wald scale or the logit-transformed scale.
+#' @details
+#' Let \eqn{\pi} denote the assumed disease prevalence. The study population
+#' is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
+#' (\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
 #'
+#' When prevalence is very low or very high, one subgroup may require
+#' substantially more subjects than the other. A naive calculation (e.g. taking
+#' the maximum of two independently calculated sample sizes) may
+#' therefore overpower one endpoint while the other determines the
+#' required total sample size.
+#'
+#' This function implements an optimal joint sample size calculation
+#' that balances both endpoints simultaneously. Endpoint-specific powers
+#' are allocated such that:
+#'
+#' \itemize{
+#'   \item the overall power equals the target value,
+#'   \item both endpoints imply the same required total sample size,
+#'   \item neither sensitivity nor specificity is unnecessarily overpowered.
+#' }
+#' Sample size formulas are based on large-sample normal approximations
+#' for binomial proportions using either:
+#' \itemize{
+#'   \item the Wald approximation on the probability scale, or
+#'   \item the logit-transformed normal approximation.
+#' }
+#'
+#' The endpoint-specific powers are determined numerically by solving
+#' a root-finding problem under the overall power constraint:
+#' \deqn{
+#' Power_{overall} = Power_{Se} \times Power_{Sp}.
+#' }
+#'
+#' The methodology follows the joint sample size framework for single-arm
+#' confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (2020).
+#'
+#' @references
+#' Stark, M., & Zapf, A. (2020).
+#' Sample size calculation and re-estimation based on the prevalence
+#' in a single-arm confirmatory diagnostic accuracy study.
+#' \emph{Statistical Methods in Medical Research}, 29(10), 2958–2971.
+#' \doi{10.1177/0962280220913588}
 #' @param pwr Overall desired power
 #' @param prev Disease prevalence
 #' @param se1 Sensitivity under alternative hypothesis
@@ -23,10 +66,21 @@
 #' @param alpha Type I error level.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
-#' @author Ainesh Sewak & Maia Muresan(DCR Bern)
-#' @return An object of class "dx_bin".
+#' @author Ainesh Sewak & Maia Muresan (DCR Bern)
+#' @importFrom stats approx pnorm qnorm spline
+#' @return An object of class "dx_bin" containing:
+#' \itemize{
+#'   \item design specifications(design specifications (alpha level, testing framework, CI method)
+#'   \item required total sample size,
+#'   \item subgroup sample sizes,
+#'   \item target overall power
+#'   \item allocated endpoint-specific powers.
+#'
+#' }
 #' @export
-
+#' @examples
+#' ss_opt_bin(pwr=0.80,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025)
+#' ss_opt_bin(pwr=0.80,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
 ss_opt_bin <- function(pwr,
                        prev,
                        se1,se0,
@@ -45,14 +99,6 @@ ss_opt_bin <- function(pwr,
   if (se1 <= se0)stop("se1 must be greater than se0 for superiority testing.")
   if (sp1 <= sp0)stop("sp1 must be greater than sp0 for superiority testing.")
   if (alpha <= 0 || alpha >= 1)stop("alpha must be between 0 and 1.")
-
-  if (alternative == "two.sided" && alpha < 0.05) {
-    warning(
-      "Two-sided alpha < 0.05 is conservative. ",
-      "Typical confirmatory superiority trials use two-sided alpha = 0.05 ",
-      "(equivalent to one-sided 0.025)."
-    )
-  }
 
   # -----------------------------
   # Common quantities

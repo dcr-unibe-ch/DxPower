@@ -6,10 +6,10 @@ Authors@R:
     c(
       person("Maia", "Muresan", 
              email = "iulia-maia.muresan@unibe.ch", 
-             role = c("aut")),
+             role = c("aut","cre")),
       person("Ainesh", "Sewak", 
              email = "ainesh.sewak@unibe.ch", 
-             role = c("aut", "cre"))
+             role = c("aut"))
     )
 Description: DxPower provides methodology for sample size determination and 
     power evaluation in confirmatory studies with co-primary endpoints. 
@@ -26,4 +26,6 @@ LazyData: true
 RoxygenNote: 7.3.3
 Suggests: 
     testthat (>= 3.0.0)
+Depends:
+    crayon
 Config/testthat/edition: 3

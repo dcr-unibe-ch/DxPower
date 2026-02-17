@@ -1,23 +1,54 @@
-#' Overall Power for Co-Primary Diagnostic Accuracy Endpoints
+#' Power calculation for Co-Primary Diagnostic Accuracy Endpoints
 #'
-#' Computes the achieved overall power for a confirmatory diagnostic
+#' @description
+#' The function determines the achieved overall power for a confirmatory diagnostic
 #' accuracy study with co-primary endpoints (sensitivity and specificity)
-#' under a superiority hypothesis framework.
+#' for a fixed total sample size.
 #'
-#' Both null hypotheses must be rejected according to an
-#' intersection–union test (IUT) principle. The overall power is defined as
-#' the joint probability of rejecting both null hypotheses.
+#' Both endpoints are tested for superiority against fixed null values.
+#' Study success requires rejection of both null hypotheses.
+#' Overall power is therefore defined under an intersection–union
+#' testing (IUT) framework, meaning that both tests must be significant.
+#' Under this framework, the global Type I error rate is controlled
+#' at level \eqn{\alpha} without multiplicity adjustment.
 #'
-#' Endpoint-specific powers are computed using large-sample normal
-#' approximations on either the Wald scale or the logit scale.
-#'
+#' The calculation explicitly incorporates the assumed disease prevalence,
+#' which determines the expected number of diseased and non-diseased subjects.
 #'
 #' @details
-#' The study population is partitioned into diseased and non-diseased
-#' subgroups according to the assumed prevalence. Under binomial sampling,
-#' the estimators of sensitivity and specificity are asymptotically
-#' independent, which justifies the product formulation of overall power.
+#' Let \eqn{\pi} denote the assumed disease prevalence. The study population
+#' is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
+#' (\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
 #'
+#' Endpoint-specific powers are derived from the asymptotic normal
+#' test statistics corresponding to the sample size formulas.
+#' The implementation uses large-sample approximations for binomial
+#' proportions based on either:
+#' \itemize{
+#'   \item the Wald approximation on the probability scale, or
+#'   \item the logit-transformed normal approximation.
+#' }
+#'
+#' Under standard binomial sampling assumptions, the estimators of
+#' sensitivity and specificity are asymptotically independent.
+#'
+#' Overall power is therefore computed as:
+#'
+#' \deqn{
+#' Power_{overall} = Power_{Se} \times Power_{Sp}.
+#' }
+#'
+#' The function returns the achieved endpoint-specific powers and
+#' their joint probability for the specified total sample size.
+#'
+#' @references
+#' Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
+#' based on the prevalence in a single-arm confirmatory diagnostic accuracy
+#' study. *Statistical Methods in Medical Research*, 29(10), 2958–2971.
+#' \doi{10.1177/0962280220913588}
+#' The power calculation implemented in this function is consistent with
+#' the asymptotic normal framework underlying the sample size methodology
+#' described in the above reference.
 #'
 #' @param N Total sample size.
 #' @param prev Disease prevalence (0 < prev < 1).
@@ -29,9 +60,21 @@
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
 #' @author Maia Muresan (DCR Bern)
-#' @return An object of class "dx_bin".
-#' @export
+#'
+#' @importFrom stats approx pnorm qnorm spline
+#' @return An object of class `"dx_bin"` containing:
+#' \itemize{
+#'   \item design specifications (design specifications (alpha level, testing framework, CI method)
+#'   \item achieved overall power,
+#'   \item endpoint-specific powers,
+#'   \item subgroup sample sizes.
 
+#' }
+#'
+#' @export
+#' @examples
+#' power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025)
+#' power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
 
 power_opt_bin <- function(N,
                           prev,
@@ -51,14 +94,6 @@ power_opt_bin <- function(N,
   if (se1 <= se0) stop("se1 must be greater than se0.")
   if (sp1 <= sp0) stop("sp1 must be greater than sp0.")
   if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
-
-  if (alternative == "two.sided" && alpha < 0.05) {
-    warning(
-      "Two-sided alpha < 0.05 is conservative. ",
-      "Typical confirmatory superiority trials use two-sided alpha = 0.05 ",
-      "(equivalent to one-sided 0.025)."
-    )
-  }
 
   # -----------------------------
   # Common quantities
@@ -128,6 +163,7 @@ power_opt_bin <- function(N,
   result <- list(
     alternative=alternative,
     alpha = alpha,
+    hypothesis="superiority",
     framework = "co-primary (IUT)",
     type = "power",
     ci_method = ci_method,
@@ -143,3 +179,4 @@ power_opt_bin <- function(N,
   class(result) <- "dx_bin"
   return(result)
 }
+
