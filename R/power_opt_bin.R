@@ -40,7 +40,8 @@
 #'
 #' The function returns the achieved endpoint-specific powers and
 #' their joint probability for the specified total sample size.
-#'
+#' @seealso \code{\link{ss_opt_bin}}
+
 #' @references
 #' Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
 #' based on the prevalence in a single-arm confirmatory diagnostic accuracy
@@ -52,10 +53,10 @@
 #'
 #' @param N Total sample size.
 #' @param prev Disease prevalence (0 < prev < 1).
-#' @param se1 Sensitivity under the alternative hypothesis.
-#' @param se0 Sensitivity under the null hypothesis.
-#' @param sp1 Specificity under the alternative hypothesis.
-#' @param sp0 Specificity under the null hypothesis.
+#' @param se.e Sensitivity under the alternative hypothesis.
+#' @param se.min Sensitivity under the null hypothesis.
+#' @param sp.e Specificity under the alternative hypothesis.
+#' @param sp.min Specificity under the null hypothesis.
 #' @param alpha Type I error level.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
@@ -73,13 +74,13 @@
 #'
 #' @export
 #' @examples
-#' power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025)
-#' power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+#' power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
+#' power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
 
 power_opt_bin <- function(N,
                           prev,
-                          se1, se0,
-                          sp1, sp0,
+                          se.e, se.min,
+                          sp.e, sp.min,
                           alpha = 0.025, ci_method=c("wald", "logit"),
                           alternative=c("one.sided","two.sided")
 ) {
@@ -91,8 +92,8 @@ power_opt_bin <- function(N,
   # -----------------------------
   if (N <= 0) stop("N must be positive.")
   if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
-  if (se1 <= se0) stop("se1 must be greater than se0.")
-  if (sp1 <= sp0) stop("sp1 must be greater than sp0.")
+  if (se.e <= se.min) stop("se.e must be greater than se.min.")
+  if (sp.e <= sp.min) stop("sp.e must be greater than sp.min.")
   if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
 
   # -----------------------------
@@ -117,44 +118,44 @@ power_opt_bin <- function(N,
   # -----------------------------
   if (ci_method == "wald") {
 
-    delta_se <- se1 - se0
-    delta_sp <- sp1 - sp0
+    delta_se <- se.e - se.min
+    delta_sp <- sp.e - sp.min
 
-    se_se0 <- sqrt(se0 * (1 - se0))
-    se_se1 <- sqrt(se1 * (1 - se1))
+    se_se.min <- sqrt(se.min * (1 - se.min))
+    se_se.e <- sqrt(se.e * (1 - se.e))
 
-    se_sp0 <- sqrt(sp0 * (1 - sp0))
-    se_sp1 <- sqrt(sp1 * (1 - sp1))
+    se_sp.min <- sqrt(sp.min * (1 - sp.min))
+    se_sp.e <- sqrt(sp.e * (1 - sp.e))
 
 
   } else if (ci_method == "logit") {
 
-    delta_se <- logit(se1) - logit(se0)
-    delta_sp <- logit(sp1) - logit(sp0)
+    delta_se <- logit(se.e) - logit(se.min)
+    delta_sp <- logit(sp.e) - logit(sp.min)
 
-    se_se0 <- sqrt(1 / (se0 * (1 - se0)))
-    se_se1 <- sqrt(1 / (se1 * (1 - se1)))
+    se_se.min <- sqrt(1 / (se.min * (1 - se.min)))
+    se_se.e <- sqrt(1 / (se.e * (1 - se.e)))
 
-    se_sp0 <- sqrt(1 / (sp0 * (1 - sp0)))
-    se_sp1 <- sqrt(1 / (sp1 * (1 - sp1)))
+    se_sp.min <- sqrt(1 / (sp.min * (1 - sp.min)))
+    se_sp.e <- sqrt(1 / (sp.e * (1 - sp.e)))
   }
 
   # -----------------------------
   # Endpoint-specific power
   # -----------------------------
   #Sensitivity power
-  z_beta_se <- (sqrt(Nd) * delta_se - z_alpha * se_se0) / se_se1
-  pwr_se <- pnorm(z_beta_se)
+  z_beta_se <- (sqrt(Nd) * delta_se - z_alpha * se_se.min) / se_se.e
+  power_se <- pnorm(z_beta_se)
 
   # Specificity power
-  z_beta_sp <- (sqrt(Nh) * delta_sp - z_alpha * se_sp0) / se_sp1
-  pwr_sp <- pnorm(z_beta_sp)
+  z_beta_sp <- (sqrt(Nh) * delta_sp - z_alpha * se_sp.min) / se_sp.e
+  power_sp <- pnorm(z_beta_sp)
 
   # -----------------------------
   # Overall power (IUT framework)
   # -----------------------------
 
-  overall <- pwr_se * pwr_sp
+  overall_power <- power_se * power_sp
 
 
   # -----------------------------
@@ -163,13 +164,16 @@ power_opt_bin <- function(N,
   result <- list(
     alternative=alternative,
     alpha = alpha,
-    hypothesis="superiority",
-    framework = "co-primary (IUT)",
-    type = "power",
+    hypothesis=list(
+      sensitivity = "sup",
+      specificity = "sup"
+    ),
+    design  = "single-test design",
+    analysis = "power",
     ci_method = ci_method,
-    overall = overall,
-    pwr_se = pwr_se,
-    pwr_sp = pwr_sp,
+    overall_power = overall_power,
+    power_se = power_se,
+    power_sp = power_sp,
     N_se = Nd,
     N_sp = Nh,
     N_tot = N,

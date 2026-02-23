@@ -7,10 +7,10 @@
 power_opt_bin(
   N,
   prev,
-  se1,
-  se0,
-  sp1,
-  sp0,
+  se.e,
+  se.min,
+  sp.e,
+  sp.min,
   alpha = 0.025,
   ci_method = c("wald", "logit"),
   alternative = c("one.sided", "two.sided")
@@ -21,13 +21,13 @@ power_opt_bin(
 
 \item{prev}{Disease prevalence (0 < prev < 1).}
 
-\item{se1}{Sensitivity under the alternative hypothesis.}
+\item{se.e}{Sensitivity under the alternative hypothesis.}
 
-\item{se0}{Sensitivity under the null hypothesis.}
+\item{se.min}{Sensitivity under the null hypothesis.}
 
-\item{sp1}{Specificity under the alternative hypothesis.}
+\item{sp.e}{Specificity under the alternative hypothesis.}
 
-\item{sp0}{Specificity under the null hypothesis.}
+\item{sp.min}{Specificity under the null hypothesis.}
 
 \item{alpha}{Type I error level.}
 
@@ -86,8 +86,8 @@ The function returns the achieved endpoint-specific powers and
 their joint probability for the specified total sample size.
 }
 \examples{
-power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025)
-power_opt_bin(N=122,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
+power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
 }
 \references{
 Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
@@ -97,6 +97,9 @@ study. *Statistical Methods in Medical Research*, 29(10), 2958–2971.
 The power calculation implemented in this function is consistent with
 the asymptotic normal framework underlying the sample size methodology
 described in the above reference.
+}
+\seealso{
+\code{\link{ss_opt_bin}}
 }
 \author{
 Maia Muresan (DCR Bern)

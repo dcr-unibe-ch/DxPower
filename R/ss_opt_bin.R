@@ -1,4 +1,4 @@
-#' Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints
+#' Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints - Single-test design
 #'
 #' @description
 #' The function determines the minimal total sample size required to achieve
@@ -51,18 +51,20 @@
 #' The methodology follows the joint sample size framework for single-arm
 #' confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (2020).
 #'
+#' In the single-test design there is no distinction between superiority and non-inferiority.
+#'
 #' @references
 #' Stark, M., & Zapf, A. (2020).
 #' Sample size calculation and re-estimation based on the prevalence
 #' in a single-arm confirmatory diagnostic accuracy study.
 #' \emph{Statistical Methods in Medical Research}, 29(10), 2958–2971.
 #' \doi{10.1177/0962280220913588}
-#' @param pwr Overall desired power
+#' @param power Overall desired power
 #' @param prev Disease prevalence
-#' @param se1 Sensitivity under alternative hypothesis
-#' @param se0 Sensitivity under null hypothesis
-#' @param sp1 Specificity under alternative hypothesis
-#' @param sp0 Specificity under null hypothesis
+#' @param se.e Sensitivity under alternative hypothesis
+#' @param se.min Sensitivity under null hypothesis
+#' @param sp.e Specificity under alternative hypothesis
+#' @param sp.min Specificity under null hypothesis
 #' @param alpha Type I error level.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
@@ -79,12 +81,12 @@
 #' }
 #' @export
 #' @examples
-#' ss_opt_bin(pwr=0.80,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025)
-#' ss_opt_bin(pwr=0.80,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
-ss_opt_bin <- function(pwr,
+#' ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
+#' ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+ss_opt_bin <- function(power,
                        prev,
-                       se1,se0,
-                       sp1,sp0,
+                       se.e,se.min,
+                       sp.e,sp.min,
                        alpha = 0.025, ci_method=c("wald","logit"),
                        alternative=c("one.sided","two.sided")) {
 
@@ -94,10 +96,10 @@ ss_opt_bin <- function(pwr,
   # -----------------------------
   # Input validation
   # -----------------------------
-  if (pwr <= 0 || pwr >= 1)stop("pwr must be between 0 and 1.")
+  if (power <= 0 || power >= 1)stop("pwr must be between 0 and 1.")
   if (prev <= 0 || prev >= 1)stop("Prevalence must be between 0 and 1.")
-  if (se1 <= se0)stop("se1 must be greater than se0 for superiority testing.")
-  if (sp1 <= sp0)stop("sp1 must be greater than sp0 for superiority testing.")
+  if (se.e <= se.min)stop("se.e must be greater than se.min for superiority testing.")
+  if (sp.e <= sp.min)stop("sp.e must be greater than sp.min for superiority testing.")
   if (alpha <= 0 || alpha >= 1)stop("alpha must be between 0 and 1.")
 
   # -----------------------------
@@ -116,74 +118,78 @@ ss_opt_bin <- function(pwr,
   # -----------------------------
   if (ci_method == "wald") {
 
-    delta_se <- se1 - se0
-    delta_sp <- sp1 - sp0
+    delta_se <- se.e - se.min
+    delta_sp <- sp.e - sp.min
 
-    v_se0 <- se0 * (1 - se0)
-    v_se1 <- se1 * (1 - se1)
+    v_se.min <- se.min * (1 - se.min)
+    v_se.e <- se.e * (1 - se.e)
 
-    v_sp0 <- sp0 * (1 - sp0)
-    v_sp1 <- sp1 * (1 - sp1)
+    v_sp.min <- sp.min * (1 - sp.min)
+    v_sp.e <- sp.e * (1 - sp.e)
 
   } else if (ci_method == "logit") {
 
-    delta_se <- logit(se1) - logit(se0)
-    delta_sp <- logit(sp1) - logit(sp0)
+    delta_se <- logit(se.e) - logit(se.min)
+    delta_sp <- logit(sp.e) - logit(sp.min)
 
-    v_se0 <- 1 / (se0 * (1 - se0))
-    v_se1 <- 1 / (se1 * (1 - se1))
+    v_se.min <- 1 / (se.min * (1 - se.min))
+    v_se.e <- 1 / (se.e * (1 - se.e))
 
-    v_sp0 <- 1 / (sp0 * (1 - sp0))
-    v_sp1 <- 1 / (sp1 * (1 - sp1))
+    v_sp.min <- 1 / (sp.min * (1 - sp.min))
+    v_sp.e <- 1 / (sp.e * (1 - sp.e))
 
   }
 
   # Define function for root finding
-  root_fun <- function(pwr_se) {
-    beta_sp <- (pwr_se - pwr) / pwr_se
-    pwr_sp  <- 1 - beta_sp
-    qpwr_se <- qnorm(pwr_se)
-    qpwr_sp <- qnorm(pwr_sp)
-    n_se <- (z_alpha * sqrt(v_se0) +
-               qpwr_se * sqrt(v_se1))^2 /
+  root_fun <- function(power_se) {
+    beta_sp <- (power_se - power) / power_se
+    power_sp  <- 1 - beta_sp
+    qpower_se <- qnorm(power_se)
+    qpower_sp <- qnorm(power_sp)
+    n_se <- (z_alpha * sqrt(v_se.min) +
+               qpower_se * sqrt(v_se.e))^2 /
       (prev * delta_se^2)
 
-    n_sp <- (z_alpha * sqrt(v_sp0) +
-               qpwr_sp * sqrt(v_sp1))^2 /
+    n_sp <- (z_alpha * sqrt(v_sp.min) +
+               qpower_sp * sqrt(v_sp.e))^2 /
       ((1 - prev) * delta_sp^2)
     return(n_se - n_sp)
   }
 
   # Search for root using splines
   eps <- 1e-6
-  grd <- seq(pwr + eps , 1 - eps, length.out = 100000)
+  grd <- seq(power + eps , 1 - eps, length.out = 100000)
   s <- spline(grd, root_fun(grd))
-  pwr_se <- approx(x = s$y, y = s$x, xout = 0)$y
-  beta_sp <- (pwr_se - pwr) / pwr_se
-  pwr_sp <- 1 - beta_sp
+  power_se <- approx(x = s$y, y = s$x, xout = 0)$y
+  beta_sp <- (power_se - power) / power_se
+  power_sp <- 1 - beta_sp
 
   # Compute z-scores
-  qpwr_se <- qnorm(pwr_se)
-  qpwr_sp <- qnorm(pwr_sp)
+  qpower_se <- qnorm(power_se)
+  qpower_sp <- qnorm(power_sp)
 
   # Sample sizes without prevalence
-  N_se <- (z_alpha * sqrt(v_se0) +
-             qpwr_se * sqrt(v_se1))^2 /
+  N_se <- (z_alpha * sqrt(v_se.min) +
+             qpower_se * sqrt(v_se.e))^2 /
     (delta_se^2)
 
-  N_sp <- (z_alpha * sqrt(v_sp0) +
-             qpwr_sp * sqrt(v_sp1))^2 /
+  N_sp <- (z_alpha * sqrt(v_sp.min) +
+             qpower_sp * sqrt(v_sp.e))^2 /
     (delta_sp^2)
 
   result <- list(
     alternative=alternative,
     alpha = alpha,
-    framework = "co-primary (IUT)",
-    type = "samplesize",
+    hypothesis=list(
+      sensitivity = "sup",
+      specificity = "sup"
+    ),
+    design  = "single-test design",
+    analysis = "samplesize",
     ci_method = ci_method,
-    target_power = pwr,
-    pwr_se = pwr_se,
-    pwr_sp = pwr_sp,
+    target_power = power,
+    power_se = power_se,
+    power_sp = power_sp,
     N_se = N_se,
     N_sp = N_sp,
     N_tot = N_se + N_sp,
@@ -193,3 +199,4 @@ ss_opt_bin <- function(pwr,
   class(result) <- "dx_bin"
   return(result)
 }
+

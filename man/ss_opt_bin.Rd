@@ -2,32 +2,32 @@
 % Please edit documentation in R/ss_opt_bin.R
 \name{ss_opt_bin}
 \alias{ss_opt_bin}
-\title{Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints}
+\title{Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints - Single-test design}
 \usage{
 ss_opt_bin(
-  pwr,
+  power,
   prev,
-  se1,
-  se0,
-  sp1,
-  sp0,
+  se.e,
+  se.min,
+  sp.e,
+  sp.min,
   alpha = 0.025,
   ci_method = c("wald", "logit"),
   alternative = c("one.sided", "two.sided")
 )
 }
 \arguments{
-\item{pwr}{Overall desired power}
+\item{power}{Overall desired power}
 
 \item{prev}{Disease prevalence}
 
-\item{se1}{Sensitivity under alternative hypothesis}
+\item{se.e}{Sensitivity under alternative hypothesis}
 
-\item{se0}{Sensitivity under null hypothesis}
+\item{se.min}{Sensitivity under null hypothesis}
 
-\item{sp1}{Specificity under alternative hypothesis}
+\item{sp.e}{Specificity under alternative hypothesis}
 
-\item{sp0}{Specificity under null hypothesis}
+\item{sp.min}{Specificity under null hypothesis}
 
 \item{alpha}{Type I error level.}
 
@@ -96,10 +96,12 @@ Power_{overall} = Power_{Se} \times Power_{Sp}.
 
 The methodology follows the joint sample size framework for single-arm
 confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (2020).
+
+In the single-test design there is no distinction between superiority and non-inferiority.
 }
 \examples{
-ss_opt_bin(pwr=0.80,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025)
-ss_opt_bin(pwr=0.80,prev=0.5,se1=0.85, se0=0.65,sp1=0.85, sp0=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
+ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
 }
 \references{
 Stark, M., & Zapf, A. (2020).
