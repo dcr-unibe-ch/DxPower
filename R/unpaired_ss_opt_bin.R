@@ -161,7 +161,7 @@
 #' unpaired_ss_opt_bin(alpha = 0.05,power = 0.80,se.c = 0.75,se.e = 0.85,sp.c = 0.65,sp.e = 0.75,prev = 0.60, delta.sp=0.05,type.sp="ni")
 #'
 #'
-unpaired_ss_opt_bin <- function (power,
+unpaired_ss_opt_bin <- function ( power,
                                   prev,
                                   se.c, se.e,
                                   sp.c,sp.e,
@@ -179,12 +179,11 @@ unpaired_ss_opt_bin <- function (power,
   # sp.e: specificity of the experimental test
   # prev: prevalence
 
-
-
   type.se <- match.arg(type.se)
   type.sp <- match.arg(type.sp)
+
+
   # the variance function
-  # variance function
   v <- function(c,e){
     c*(1-c) + e*(1-e)
   }
@@ -192,57 +191,62 @@ unpaired_ss_opt_bin <- function (power,
 
   # ---------- endpoint-level sample size ----------
   n_endpoint <- function(alpha, beta, c, e, delta, type){
+    z.alpha <- qnorm(1-alpha/2)
+    z.beta <- qnorm(1-beta)
 
     if(type == "sup"){
-      z.alpha <- qnorm(alpha/2)
       effect  <- c - e
       V0 <- v(c,c)
       VA <- v(c,e)
-      n <- ((z.alpha*sqrt(V0) + qnorm(beta)*sqrt(VA))^2) / (effect^2)
+      n <- ((z.alpha*sqrt(V0) + z.beta*sqrt(VA))^2) / (effect^2)
     }
 
     if(type == "ni"){
-      z.alpha <- qnorm(alpha)
       effect  <- c - e - delta
       VA <- v(c,e)
-      n <- ((z.alpha + qnorm(beta))^2 * VA) / (effect^2)
+      n <- ((z.alpha + z.beta)^2 * VA) / (effect^2)
     }
 
     return(ceiling(n))
   }
+
   f <- function(beta.se){
 
-    beta.sp <- (power + beta.se - 1)/(beta.se - 1)
+    beta.sp <- (1-beta.se-power)/(1-beta.se)
 
     if(beta.sp <= 0 || beta.sp >= 1) return(Inf)
 
-    n.se <- n_endpoint(alpha, beta.se,
-                       se.c, se.e,
-                       delta.se, type.se)
+    n.se <- n_endpoint(alpha=alpha, beta=beta.se,
+                       c=se.c, e=se.e,
+                       delta=delta.se, type=type.se)
 
-    n.sp <- n_endpoint(alpha, beta.sp,
-                       sp.c, sp.e,
-                       delta.sp, type.sp)
+    n.sp <- n_endpoint(alpha=alpha, beta=beta.sp,
+                       c=sp.c, e=sp.e,
+                       delta=delta.sp, type=type.sp)
 
     N.se <- n.se / prev
     N.sp <- n.sp / (1-prev)
 
     return(N.se - N.sp)
   }
+
+
+
+
   beta.se <- uniroot(f,
                      lower = 1e-8,
                      upper = 1-power-1e-8)$root
 
-  beta.sp <- (power + beta.se - 1)/(beta.se - 1)
+  beta.sp <- (1- beta.se-power)/(1-beta.se)
 
   # ---------- final sample sizes ----------
-  n.se <- n_endpoint(alpha, beta.se,
-                     se.c, se.e,
-                     delta.se, type.se)
+  n.se <- n_endpoint(alpha=alpha, beta=beta.se,
+                     c=se.c, e=se.e,
+                     delta=delta.se, type=type.se)
 
-  n.sp <- n_endpoint(alpha, beta.sp,
-                     sp.c, sp.e,
-                     delta.sp, type.sp)
+  n.sp <- n_endpoint(alpha=alpha, beta=beta.sp,
+                     c=sp.c, e=sp.e,
+                     delta=delta.sp, type=type.sp)
 
   N.se <- n.se / prev
   N.sp <- n.sp / (1-prev)
@@ -250,17 +254,30 @@ unpaired_ss_opt_bin <- function (power,
   N.per.group <- ceiling(max(N.se, N.sp))
 
   # achieved power check
-  power.se <- 1 - pnorm(
-    (sqrt(N.per.group*prev)*(se.c-se.e-delta.se*(type.se=="ni")) -
-       qnorm(ifelse(type.se=="sup",alpha/2,alpha))*sqrt(v(se.c,se.c))) /
-      sqrt(v(se.c,se.e))
-  )
+  power_endpoint <- function(n, alpha, c, e, delta, type){
+    z.alpha <- qnorm(1-alpha/2)
 
-  power.sp <- 1 - pnorm(
-    (sqrt(N.per.group*(1-prev))*(sp.c-sp.e-delta.sp*(type.sp=="ni")) -
-       qnorm(ifelse(type.sp=="sup",alpha/2,alpha))*sqrt(v(sp.c,sp.c))) /
-      sqrt(v(sp.c,sp.e))
-  )
+    if(type == "sup"){
+      effect  <- c - e
+      V0 <- v(c,c)
+      VA <- v(c,e)
+      z <- (sqrt(n)*effect - z.alpha*sqrt(V0)) / sqrt(VA)
+    }
+
+    if(type == "ni"){
+      effect  <- c - e - delta
+      VA <- v(c,e)
+      z <- ((sqrt(n)*(effect)/sqrt(VA))-z.alpha)
+    }
+
+    power <- 1 - pnorm(z)
+
+    return(power)
+  }
+
+  power.se <- power_endpoint(n=N.per.group*prev, alpha=alpha, c=se.c,e=se.e,delta=delta.se,type=type.se)
+
+  power.sp <- power_endpoint(n=N.per.group*(1-prev), alpha=alpha, c=sp.c,e=sp.e,delta=delta.sp,type=type.sp)
 
   power.total <- power.se * power.sp
 

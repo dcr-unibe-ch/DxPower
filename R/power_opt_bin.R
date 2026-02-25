@@ -121,11 +121,11 @@ power_opt_bin <- function(N,
     delta_se <- se.e - se.min
     delta_sp <- sp.e - sp.min
 
-    se_se.min <- sqrt(se.min * (1 - se.min))
-    se_se.e <- sqrt(se.e * (1 - se.e))
+    v_se.min <- se.min * (1 - se.min)
+    v_se.e <- se.e * (1 - se.e)
 
-    se_sp.min <- sqrt(sp.min * (1 - sp.min))
-    se_sp.e <- sqrt(sp.e * (1 - sp.e))
+    v_sp.min <- sp.min * (1 - sp.min)
+    v_sp.e <- sp.e * (1 - sp.e)
 
 
   } else if (ci_method == "logit") {
@@ -133,22 +133,22 @@ power_opt_bin <- function(N,
     delta_se <- logit(se.e) - logit(se.min)
     delta_sp <- logit(sp.e) - logit(sp.min)
 
-    se_se.min <- sqrt(1 / (se.min * (1 - se.min)))
-    se_se.e <- sqrt(1 / (se.e * (1 - se.e)))
+    v_se.min <- 1 / (se.min * (1 - se.min))
+    v_se.e <- 1 / (se.e * (1 - se.e))
 
-    se_sp.min <- sqrt(1 / (sp.min * (1 - sp.min)))
-    se_sp.e <- sqrt(1 / (sp.e * (1 - sp.e)))
+    v_sp.min <- 1 / (sp.min * (1 - sp.min))
+    v_sp.e <- 1 / (sp.e * (1 - sp.e))
   }
 
   # -----------------------------
   # Endpoint-specific power
   # -----------------------------
   #Sensitivity power
-  z_beta_se <- (sqrt(Nd) * delta_se - z_alpha * se_se.min) / se_se.e
+  z_beta_se <- (sqrt(Nd) * delta_se - z_alpha * sqrt(v_se.min)) / sqrt(v_se.e)
   power_se <- pnorm(z_beta_se)
 
   # Specificity power
-  z_beta_sp <- (sqrt(Nh) * delta_sp - z_alpha * se_sp.min) / se_sp.e
+  z_beta_sp <- (sqrt(Nh) * delta_sp - z_alpha * sqrt(v_sp.min)) / sqrt(v_sp.e)
   power_sp <- pnorm(z_beta_sp)
 
   # -----------------------------

@@ -74,8 +74,8 @@ unpaired_power_opt_bin <- function(
 
   type.se <- match.arg(type.se)
   type.sp <- match.arg(type.sp)
+
   # the variance function
-  # variance function
   v <- function(c,e){
     c*(1-c) + e*(1-e)
   }
@@ -83,9 +83,9 @@ unpaired_power_opt_bin <- function(
   # power for one endpoint
   # ---------- endpoint power ----------
   power_endpoint <- function(n, alpha, c, e, delta, type){
+    z.alpha <- qnorm(1-alpha/2)
 
     if(type == "sup"){
-      z.alpha <- qnorm(alpha/2)
       effect  <- c - e
       V0 <- v(c,c)
       VA <- v(c,e)
@@ -93,10 +93,9 @@ unpaired_power_opt_bin <- function(
     }
 
     if(type == "ni"){
-      z.alpha <- qnorm(alpha)
       effect  <- c - e - delta
       VA <- v(c,e)
-      z <- ((sqrt(n)*(effect)/sqrt(VA))-qnorm(alpha/2))
+      z <- ((sqrt(n)*(effect)/sqrt(VA))-z.alpha)
     }
 
     power <- 1 - pnorm(z)
@@ -109,13 +108,14 @@ unpaired_power_opt_bin <- function(
   Nh <- N * (1 - prev) #non-diseased(healty)
 
   # compute powers
-  power.se <- power_endpoint(Nd, alpha,
-                             se.c, se.e,
-                             delta.se, type.se)
+  power.se <- power_endpoint(n=Nd, alpha=alpha,
+                             c=se.c, e=se.e,
+                             delta=delta.se, type=type.se)
 
-  power.sp <- power_endpoint(Nh, alpha,
-                             sp.c, sp.e,
-                             delta.sp, type.sp)
+  power.sp <- power_endpoint(n=Nh, alpha=alpha,
+                             c=sp.c, e=sp.e,
+                             delta=delta.sp, type=type.sp)
+
   power.total <- power.se * power.sp
 
   result <- list(
