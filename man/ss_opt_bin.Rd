@@ -100,8 +100,42 @@ confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (202
 In the single-test design there is no distinction between superiority and non-inferiority.
 }
 \examples{
-ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
-ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+# Example 1: Sample size calculation for a single diagnostic test
+# Objective: demonstrate that sensitivity and specificity exceed
+# pre-specified minimum acceptable values
+ss_opt_bin(
+  power = 0.80,        # desired power
+  prev = 0.5,          # disease prevalence
+  se.e = 0.85,         # expected sensitivity
+  se.min = 0.65,       # minimum acceptable sensitivity
+  sp.e = 0.85,         # expected specificity
+  sp.min = 0.55,       # minimum acceptable specificity
+  alpha = 0.025        # one-sided significance level
+)
+#same
+ss_opt_bin(
+  power = 0.80,        # desired power
+  prev = 0.5,          # disease prevalence
+  se.e = 0.85,         # expected sensitivity
+  se.min = 0.65,       # minimum acceptable sensitivity
+  sp.e = 0.85,         # expected specificity
+  sp.min = 0.55,       # minimum acceptable specificity
+  alpha = 0.025,        # one-sided significance level (default)
+  ci_method = "wald",   # default
+  alternative = "one.sided" #default
+)
+# Example 2: Same design using logit-based confidence interval
+ss_opt_bin(
+  power = 0.80,
+  prev = 0.5,
+  se.e = 0.85,
+  se.min = 0.65,
+  sp.e = 0.85,
+  sp.min = 0.55,
+  alpha = 0.025,
+  ci_method = "logit",
+  alternative = "one.sided"
+)
 }
 \references{
 Stark, M., & Zapf, A. (2020).

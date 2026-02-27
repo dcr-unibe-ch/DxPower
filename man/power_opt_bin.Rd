@@ -2,7 +2,8 @@
 % Please edit documentation in R/power_opt_bin.R
 \name{power_opt_bin}
 \alias{power_opt_bin}
-\title{Power calculation for Co-Primary Diagnostic Accuracy Endpoints}
+\title{Power calculation for Single-test
+Diagnostic Accuracy Study with Co-Primary Endpoints}
 \usage{
 power_opt_bin(
   N,

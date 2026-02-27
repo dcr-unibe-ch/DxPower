@@ -179,9 +179,36 @@ Endpoint-specific powers are allocated numerically such that:
 }
 }
 \examples{
-unpaired_ss_opt_bin(alpha = 0.05,power = 0.80,se.c = 0.75,se.e = 0.85,sp.c = 0.65,sp.e = 0.75,prev = 0.60)
-unpaired_ss_opt_bin(alpha = 0.05,power = 0.80,se.c = 0.75,se.e = 0.85,sp.c = 0.65,sp.e = 0.75,prev = 0.60, delta.se=0.05,type.se="ni")
-unpaired_ss_opt_bin(alpha = 0.05,power = 0.80,se.c = 0.75,se.e = 0.85,sp.c = 0.65,sp.e = 0.75,prev = 0.60, delta.sp=0.05,type.sp="ni")
+unpaired_ss_opt_bin(
+alpha = 0.05,
+power = 0.80,
+se.c = 0.75,
+se.e = 0.85,
+sp.c = 0.65,
+sp.e = 0.75,
+prev = 0.60
+)
+unpaired_ss_opt_bin(
+alpha = 0.05,
+power = 0.80,
+se.c = 0.75,
+se.e = 0.85,
+sp.c = 0.65,
+sp.e = 0.75,
+prev = 0.60,
+delta.se=0.05,
+type.se="ni")
+unpaired_ss_opt_bin(
+alpha = 0.05,
+power = 0.80,
+se.c = 0.75,
+se.e = 0.85,
+sp.c = 0.65,
+sp.e = 0.75,
+prev = 0.60,
+delta.sp=0.05,
+type.sp="ni"
+)
 
 
 }

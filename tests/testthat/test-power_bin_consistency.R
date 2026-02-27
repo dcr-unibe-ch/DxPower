@@ -28,3 +28,5 @@ test_that("ss_opt_bin and power_opt_bin are consistent", {
 
   expect_equal(pow$overall, 0.80, tolerance = 1e-3)
 })
+
+

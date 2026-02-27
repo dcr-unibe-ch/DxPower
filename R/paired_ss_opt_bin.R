@@ -1,4 +1,4 @@
-#' Optimal Sample Size Calculation for an Paired Comparative
+#' Optimal Sample Size Calculation for a Paired Comparative
 #' Diagnostic Accuracy Study with Co-Primary Endpoints
 #'
 #' @description
@@ -20,6 +20,94 @@
 #'
 #' @details
 #'
+#' \strong{Design framework}
+#'
+#' Sensitivity is evaluated in the diseased subgroup and specificity
+#' in the non-diseased subgroup.
+#'
+#' With total sample size \eqn{N} and disease prevalence \eqn{\pi},
+#' subgroup sizes are:
+#'
+#' \deqn{N_{Se} = N\pi, \qquad N_{Sp} = N(1-\pi).}
+#'
+#' \strong{Intersection–Union Testing (IUT)}
+#'
+#' The global null hypothesis is the union of the endpoint-specific
+#' null hypotheses. Study success requires rejection of both
+#' endpoint-specific hypotheses.
+#'
+#' Assuming independence between diseased and non-diseased subgroups,
+#' the overall power is:
+#'
+#' \deqn{Power_{overall} = Power_{Se} \times Power_{Sp}.}
+#'
+#'
+#' \strong{Hypothesis specification}
+#'
+#' Let \eqn{\theta_{Se,E}} and \eqn{\theta_{Se,C}} denote the sensitivities
+#' of the experimental and comparator tests, and
+#' \eqn{\theta_{Sp,E}} and \eqn{\theta_{Sp,C}} the corresponding specificities.
+#'
+#'\emph{Superiority (both endpoints):}
+#'
+#' \deqn{
+#' H_{0,global} =
+#' (\theta_{Se,E} \le \theta_{Se,C})
+#' \cup
+#' (\theta_{Sp,E} \le \theta_{Sp,C})
+#' }
+#'
+#' \emph{Sensitivity superiority and specificity non-inferiority:}
+#'
+#' Let \eqn{\Delta_{Sp} > 0} denote the NI margin for specificity.
+#'
+#' \deqn{
+#' H_{0,global} =
+#' (\theta_{Se,E} \le \theta_{Se,C})
+#' \cup
+#' (\theta_{Sp,E} \le \theta_{Sp,C} - \Delta_{Sp})
+#' }
+#'
+#' Similar formulations apply for other combinations of superiority
+#' and non-inferiority.
+#'
+#'
+#' \strong{Endpoint-specific sample size formulas}
+#'
+#' Let \eqn{d = \theta_E - \theta_C} denote the difference between the
+#' experimental and comparator test (sensitivity or specificity,
+#' depending on the endpoint).
+#'
+#' For each endpoint, the required subgroup sample size is
+#' derived from the large-sample normal approximation of the
+#' corresponding paired test statistic.
+#'
+#' For superiority hypotheses (\eqn{H_0: d \le 0}),
+#' the sample size is obtained from the asymptotic power
+#' formula for paired binary data described by
+#' Miettinen (1968) and applied in Stark et al. (2022).
+#' The required number of subjects is determined by
+#' solving the power equation with respect to the
+#' sample size.
+#'
+#' For non-inferiority hypotheses (\eqn{H_0: d \le -\Delta}),
+#' the sample size is derived from the score test for
+#' paired binary data described by Liu et al. (2002).
+#' The asymptotic power function of the score statistic,
+#' with variance evaluated at the non-inferiority boundary
+#' (\eqn{d = -\Delta}) using a restricted maximum likelihood
+#' (RMLE) approach, is solved numerically to obtain the
+#' required sample size.
+#'
+#' To achieve a desired overall power, the function determines
+#' endpoint-specific type II error rates \eqn{\beta_{Se}} and
+#' \eqn{\beta_{Sp}} satisfying:
+#'
+#' \deqn{(1-\beta_{Se})(1-\beta_{Sp}) = power.}
+#'
+#' The total sample size is chosen such that the required subgroup
+#' sizes are simultaneously satisfied.
+#'
 #' \strong{Required assumptions (nuisance parameters)}
 #'
 #' In addition to sensitivities and specificities, the paired design
@@ -33,6 +121,7 @@
 #'
 #' These are nuisance parameters and must be specified based on prior
 #' studies or clinical knowledge.
+#' Discordant parameters must satisfy the theoretical bounds.
 #'
 #' For diseased subjects:
 #'
@@ -52,72 +141,41 @@
 #' \deqn{\psi_{ND,min} = |Sp_C - Sp_E|}
 #'
 #' In practice, the sample size may be calculated using these
-#' minimal values together with an assumed prevalence \eqn{\pi_{ass}}.
+#' minimal values together with an assumed (true) prevalence \eqn{\pi_{ass}.}
 #'
-#' \strong{Integration of prevalence}
+#' \strong{Important assumptions}
 #'
-#' Let \eqn{\theta_{Se,E}} and \eqn{\theta_{Se,C}} denote the sensitivities
-#' of the experimental and comparator tests, and
-#' \eqn{\theta_{Sp,E}} and \eqn{\theta_{Sp,C}} the corresponding specificities.
-#'
-#' With total sample size \eqn{N} and disease prevalence \eqn{\pi},
-#' subgroup sizes are:
-#'
-#' \deqn{N_{Se} = N\pi, \qquad N_{Sp} = N(1-\pi).}
-#'
-#' Sensitivity is evaluated in the diseased subgroup and specificity
-#' in the non-diseased subgroup. Assuming independence between these
-#' subgroups, overall power under the IUT framework equals:
-#'
-#' \deqn{Power_{overall} = Power_{Se} \times Power_{Sp}.}
-#'
-#' The global null hypothesis is the union of the endpoint-specific
-#' null hypotheses and is rejected only if both endpoints are significant.
-#'
-#' To achieve the desired overall power, the function solves numerically:
-#'
-#' \deqn{(1-\beta_{Se})(1-\beta_{Sp}) = power}
-#'
-#' under the constraint:
-#'
-#' \deqn{N_{Se} = N_{Sp},}
-#'
-#' ensuring optimal allocation of type II error between endpoints.
-#'
-#'
-#' \strong{Case 1: Superiority for both endpoints}
-#'
-#' \deqn{
-#' H_{0,global} =
-#' \left( \theta_{Se,E} \le \theta_{Se,C} \right)
-#' \cup
-#' \left( \theta_{Sp,E} \le \theta_{Sp,C} \right).
+#' \itemize{
+#'   \item Asymptotic normal approximation is used.
+#'   \item Diseased and non-diseased subgroups are treated as independent.
+#'   \item The true effect must satisfy the alternative hypothesis
+#'         (e.g., \eqn{d + \Delta > 0} for non-inferiority).
 #' }
 #'
-#' \strong{Case 2: Sensitivity superiority and specificity non-inferiority}
 #'
-#' Let \eqn{\delta_{Sp} > 0} denote the non-inferiority margin for specificity.
-#'
-#' \deqn{
-#' H_{0,global} =
-#' \left( \theta_{Se,E} \le \theta_{Se,C} \right)
-#' \cup
-#' \left( \theta_{Sp,E} \le \theta_{Sp,C} - \delta_{Sp} \right).
-#' }
-#'
-#' Similar formulations apply for:specificity superiority with sensitivity non-inferiority,
-#' or both endpoints non-inferiority.
-#'
-#' Under IUT, the global null hypothesis is rejected only if both
-#' endpoint-specific null hypotheses are rejected.
-#'
-#' @seealso \code{\link{ss_opt_bin}}
+#' @seealso
+#' \code{\link{paired_power_opt_bin}} for power determination,
+#' \code{\link{ss_opt_bin}} and
+#' \code{\link{power_opt_bin}} for single-test design
+#' \code{\link{unpaired_ss_opt_bin}} and
+#' \code{\link{unpaired_power_opt_bin}} for unpaired designs.
 #' @references
 #' Stark, M., Hesse, M., Brannath, W., & Zapf, A. (2022).
 #' Blinded sample size re-estimation in a comparative diagnostic
 #' accuracy study.
 #' \emph{BMC Medical Research Methodology}, 22, 115.
 #' \doi{10.1186/s12874-022-01564-2}
+#'
+#'  Liu, J. P., Hsueh, H. M., Hsieh, E., & Chen, J. J. (2002).
+#' Tests for equivalence or non-inferiority for paired binary data.
+#' \emph{Statistics in Medicine}, 21(2), 231–245.
+#' \doi{10.1002/sim.1012}
+#'
+#' Miettinen, O.S. (1968).
+#' The matched pairs design in the case of all-or-none responses.
+#' \emph{Biometrics}, 24(2), 339–352.
+#' \doi{10.2307/2528039}
+#'
 #' @param power Overall desired power for the co-primary hypothesis.
 #' @param prev Disease prevalence in the study population.
 #' @param se.c Sensitivity of the comparator test.
@@ -136,7 +194,7 @@
 #' @param type.sp Type of hypothesis for specificity:
 #'   \code{"sup"} (superiority, default) or \code{"ni"} (non-inferiority).
 #' @author Maia Muresan (DCR Bern)
-#' @importFrom stats approx pnorm qnorm spline uniroot
+#' @importFrom stats pnorm qnorm
 #' @return An object of class "dx_bin" containing:
 #' \itemize{
 #'   \item design specifications(design specifications (alpha level, testing framework)
@@ -148,9 +206,50 @@
 #' }
 #' @export
 #' @examples
-#' paired_ss_opt_bin(alpha=0.05, power=0.80, se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09, psi.nd=0.14,prev=0.05)
-#' paired_ss_opt_bin(alpha=0.05, power=0.80, se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09, psi.nd=0.14,prev=0.05, delta.se=0,delta.sp=0, type.se="sup",type.sp="sup")
-#' paired_ss_opt_bin(alpha=0.05, power=0.80, se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09, psi.nd=0.20, prev=0.5, delta.sp = 0.10,type.sp = "ni")
+#'
+#' # Example 1: Superiority for both sensitivity and specificity
+#' # The experimental test is assumed superior on both endpoints
+#' paired_ss_opt_bin(
+#'   alpha = 0.05,
+#'   power = 0.80,          # desired overall power
+#'   se.c = 0.81,           # comparator sensitivity
+#'   se.e = 0.90,           # experimental sensitivity
+#'   sp.c = 0.66,           # comparator specificity
+#'   sp.e = 0.80,           # experimental specificity
+#'   psi.d = 0.09,          # discordance (diseased subgroup)
+#'   psi.nd = 0.14,         # discordance (non-diseased subgroup)
+#'   prev = 0.5             # disease prevalence
+#' )
+#'
+#'
+#' # Explicit superiority specification (same as default)
+#' paired_ss_opt_bin(
+#'   alpha = 0.05,
+#'   power = 0.80,
+#'   se.c = 0.81, se.e = 0.90,
+#'   sp.c = 0.66, sp.e = 0.80,
+#'   psi.d = 0.09,
+#'   psi.nd = 0.14,
+#'   prev = 0.5,
+#'   type.se = "sup",
+#'   type.sp = "sup"
+#' )
+#'
+#' # Example 2: Sensitivity superiority and specificity non-inferiority
+#' # Non-inferiority margin for specificity = 0.10
+#' # Note: Experimental test is superior to the comparator test regarding sensitivity
+#' # and non-inferior regarding specificity .
+#' paired_ss_opt_bin(
+#'   alpha = 0.05,
+#'   power = 0.80,
+#'   se.c = 0.81, se.e = 0.90,
+#'   sp.c = 0.66, sp.e = 0.80,
+#'   psi.d = 0.09,
+#'   psi.nd = 0.14,
+#'   prev = 0.5,
+#'   delta.sp = 0.10,       # non-inferiority margin for specificity
+#'   type.sp = "ni"
+#' )
 paired_ss_opt_bin <- function(power,
                               prev,
                               se.c, se.e,

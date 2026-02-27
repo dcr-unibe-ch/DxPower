@@ -10,7 +10,7 @@ test_that("power_opt_bin returns correct structure", {
     prev = 0.5
   )
 
-  expect_type(pow, "list")
+  expect_s3_class(pow, "dx_bin")
   expect_true(all(c("overall_power","power_se","power_sp") %in% names(pow)))
 })
 

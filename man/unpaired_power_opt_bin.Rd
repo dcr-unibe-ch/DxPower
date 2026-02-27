@@ -69,8 +69,26 @@ normal approximations for the difference between two independent
 binomial proportions.
 }
 \examples{
-unpaired_power_opt_bin(N=910,alpha=0.05,se.c=0.75,se.e=0.85,sp.c=0.65,sp.e=0.75,prev=0.6)
-unpaired_power_opt_bin(N=910,alpha=0.05,se.c=0.75,se.e=0.85,sp.c=0.65,sp.e=0.75,prev=0.6, delta.sp=0.05, type.sp="ni")
+unpaired_power_opt_bin(
+N=910,
+alpha=0.05,
+se.c=0.75,
+se.e=0.85,
+sp.c=0.65,
+sp.e=0.75,
+prev=0.6
+)
+unpaired_power_opt_bin(
+N=910,
+alpha=0.05,
+se.c=0.75,
+se.e=0.85,
+sp.c=0.65,
+sp.e=0.75,
+prev=0.6,
+delta.sp=0.05,
+type.sp="ni"
+)
 }
 \references{
 Stark, M., Hesse, M., Brannath, W., & Zapf, A. (2022).

@@ -1,4 +1,5 @@
-#' Power calculation for Co-Primary Diagnostic Accuracy Endpoints
+#' Power calculation for Single-test
+#' Diagnostic Accuracy Study with Co-Primary Endpoints
 #'
 #' @description
 #' The function determines the achieved overall power for a confirmatory diagnostic

@@ -81,8 +81,42 @@
 #' }
 #' @export
 #' @examples
-#' ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
-#' ss_opt_bin(power=0.80,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+#' # Example 1: Sample size calculation for a single diagnostic test
+#' # Objective: demonstrate that sensitivity and specificity exceed
+#' # pre-specified minimum acceptable values
+#' ss_opt_bin(
+#'   power = 0.80,        # desired power
+#'   prev = 0.5,          # disease prevalence
+#'   se.e = 0.85,         # expected sensitivity
+#'   se.min = 0.65,       # minimum acceptable sensitivity
+#'   sp.e = 0.85,         # expected specificity
+#'   sp.min = 0.55,       # minimum acceptable specificity
+#'   alpha = 0.025        # one-sided significance level
+#' )
+#' #same
+#' ss_opt_bin(
+#'   power = 0.80,        # desired power
+#'   prev = 0.5,          # disease prevalence
+#'   se.e = 0.85,         # expected sensitivity
+#'   se.min = 0.65,       # minimum acceptable sensitivity
+#'   sp.e = 0.85,         # expected specificity
+#'   sp.min = 0.55,       # minimum acceptable specificity
+#'   alpha = 0.025,        # one-sided significance level (default)
+#'   ci_method = "wald",   # default
+#'   alternative = "one.sided" #default
+#' )
+#' # Example 2: Same design using logit-based confidence interval
+#' ss_opt_bin(
+#'   power = 0.80,
+#'   prev = 0.5,
+#'   se.e = 0.85,
+#'   se.min = 0.65,
+#'   sp.e = 0.85,
+#'   sp.min = 0.55,
+#'   alpha = 0.025,
+#'   ci_method = "logit",
+#'   alternative = "one.sided"
+#' )
 ss_opt_bin <- function(power,
                        prev,
                        se.e,se.min,
@@ -118,8 +152,8 @@ ss_opt_bin <- function(power,
   # -----------------------------
   if (ci_method == "wald") {
 
-    delta_se <- se.e - se.min
-    delta_sp <- sp.e - sp.min
+    d_se <- se.e - se.min
+    d_sp <- sp.e - sp.min
 
     v_se.min <- se.min * (1 - se.min)
     v_se.e <- se.e * (1 - se.e)
@@ -129,8 +163,8 @@ ss_opt_bin <- function(power,
 
   } else if (ci_method == "logit") {
 
-    delta_se <- logit(se.e) - logit(se.min)
-    delta_sp <- logit(sp.e) - logit(sp.min)
+    d_se <- logit(se.e) - logit(se.min)
+    d_sp <- logit(sp.e) - logit(sp.min)
 
     v_se.min <- 1 / (se.min * (1 - se.min))
     v_se.e <- 1 / (se.e * (1 - se.e))
@@ -148,11 +182,11 @@ ss_opt_bin <- function(power,
     qpower_sp <- qnorm(power_sp)
     n_se <- (z_alpha * sqrt(v_se.min) +
                qpower_se * sqrt(v_se.e))^2 /
-      (prev * delta_se^2)
+      (prev * d_se^2)
 
     n_sp <- (z_alpha * sqrt(v_sp.min) +
                qpower_sp * sqrt(v_sp.e))^2 /
-      ((1 - prev) * delta_sp^2)
+      ((1 - prev) * d_sp^2)
     return(n_se - n_sp)
   }
 
@@ -171,11 +205,11 @@ ss_opt_bin <- function(power,
   # Sample sizes without prevalence
   N_se <- (z_alpha * sqrt(v_se.min) +
              qpower_se * sqrt(v_se.e))^2 /
-    (delta_se^2)
+    (d_se^2)
 
   N_sp <- (z_alpha * sqrt(v_sp.min) +
              qpower_sp * sqrt(v_sp.e))^2 /
-    (delta_sp^2)
+    (d_sp^2)
 
   result <- list(
     alternative=alternative,
