@@ -147,7 +147,10 @@
 #'
 #' }
 #' @export
-#'
+#' @examples
+#' paired_ss_opt_bin(alpha=0.05, power=0.80, se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09, psi.nd=0.14,prev=0.05)
+#' paired_ss_opt_bin(alpha=0.05, power=0.80, se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09, psi.nd=0.14,prev=0.05, delta.se=0,delta.sp=0, type.se="sup",type.sp="sup")
+#' paired_ss_opt_bin(alpha=0.05, power=0.80, se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09, psi.nd=0.20, prev=0.5, delta.sp = 0.10,type.sp = "ni")
 paired_ss_opt_bin <- function(power,
                               prev,
                               se.c, se.e,
@@ -159,7 +162,20 @@ paired_ss_opt_bin <- function(power,
                               delta.sp=0,
                               type.se=c("sup","ni"),
                               type.sp=c("sup","ni")) {
-
+  # ==========================================================
+  # Co-primary sample size for paired diagnostic study
+  # Framework:
+  # -paired comparison (same subjects receive boths test in adidtion to the ref.standard)
+  # -co-primary endpoints: Sens and Spec
+  # -Intersection-Union Test(IUT) => Overall power=Power_Se x Power_Sp
+  # IUT hypothesis:
+  # - Superioroty: H0_global: d_se<=0 U d_sp<=0 (vs H1_global: d_se>0 AND d_sp>0)
+  #   *sample size via Maria stark (2022) asymptotic formula
+  # - Non-inferiority: H0_global: d_sp<=0 U d_se<=-Δ (vs H1_gloval: d_se>0 AND d_se > -Δ)
+  #   *Sample size via Liu et al. score-based derivation
+  # where d=e-c (experimental - comparator test)
+  #       ψ = discordance probability = p01 + p10
+  # ==========================================================
 
   type.se <- match.arg(type.se)
   type.sp <- match.arg(type.sp)
@@ -169,109 +185,201 @@ paired_ss_opt_bin <- function(power,
   # -----------------------------
   if (power <= 0 || power >= 1)stop("power must be between 0 and 1.")
   if (prev <= 0 || prev >= 1)stop("Prevalence must be between 0 and 1.")
-  if (se.e <= se.c)stop("se.e must be greater than se.c for superiority testing.")
-  if (sp.e <= sp.c)stop("sp.e must be greater than sp.min for superiority testing.")
   if (alpha <= 0 || alpha >= 1)stop("alpha must be between 0 and 1.")
+  # -----------------------------
+  # Hypothesis consistency checks
+  # -----------------------------
+  # Superiority requires expected improvement
+  if(type.se=="sup" && se.e <= se.c)stop("Sensitivity superiority requires se.e > se.c")
+  if(type.sp=="sup" && sp.e <= sp.c)stop("Specificity superiority requires sp.e > sp.c.")
+  # Non-inferiority requires true effect above NI boundary
+  if(type.se=="ni" && (se.e - se.c) <= -delta.se)
+    stop("Sensitivity NI invalid: true difference (se.e - se.c) must be > -delta.se")
+  if(type.sp=="ni" && (sp.e - sp.c) <= -delta.sp)
+    stop("Specificity NI invalid: true difference (sp.e - sp.c) must be > -delta.sp")
 
-  # sample size calculation for one endpoint following Miettinen (1968)
-  n_endpoint <- function(alpha, beta, c, e, psi,  delta=0, type){
-    z.beta <- qnorm(1 - beta)
-    z.alpha <- qnorm(1-alpha/2)
 
-    if(type == "sup"){
-      diff   <- abs(e - c)
-      n <- (z.alpha*psi+z.beta*sqrt( (psi^2)-0.25*((c-e)^2)*(3+psi)) )^2 /(psi*(c-e)^2)
-    }
 
-    if(type == "ni"){
+  # Informative warning: large NI margin makes test trivial
 
-      p01<-(psi-e+c)/2
-      b_u<-delta*(delta+1)*p01
-      a_u<-(-(e-c))*(1-delta)-2*(p01+delta)
-      p_bar_01<-(-a_u+sqrt(a_u^2-8*b_u))/4
-      w_u<-sqrt(2*p01+(e-c)-(e-c)^2)/sqrt(2*p_bar_01-delta-delta^2)
-
-      n <- ((psi -(e-c)^2)*((z.alpha/w_u)+z.beta)^2)/(-delta-(e-c))^2
-
-    }
-    return(ceiling(n))
+  if(type.se=="ni" && delta.se > abs(se.e - se.c)){
+    warning(
+      paste0(
+        "Sensitivity NI margin (delta.sp = ", delta.se,
+        ") is larger than the expected difference (sp.e - sp.c = ", round(se.e - se.c,3), "). ",
+        "NI objective is far from boundary and unlikely to drive sample size."
+      )
+    )
+  }
+  if(type.sp=="ni" && delta.sp > abs(sp.e - sp.c)){
+    warning(
+      paste0(
+        "Specificity NI margin (delta.sp = ", delta.sp,
+        ") is larger than the expected difference (sp.e - sp.c = ",
+        round(sp.e - sp.c, 3), "). ",
+        "NI objective is far from boundary and unlikely to drive sample size."
+      )
+    )
   }
 
-  # calculate power for one endpoint
-
-
   # -----------------------------
-  # Root function for IUT
+  # Discordance bounds check
+  # ψ must satisfy theoretical bounds:
+  # |d| ≤ ψ ≤ c + e − 2ce
   # -----------------------------
-  f_root <- function(beta.se){
+  # Sensitivity bounds
+  psi.d.lower <- abs(se.c - se.e)
+  psi.d.upper <- se.c + se.e - 2*se.c*se.e
 
-    beta.sp <- (power + beta.se - 1)/(beta.se - 1)
+  if(psi.d < psi.d.lower || psi.d > psi.d.upper){
+    stop(
+      paste0("psi.d outside theoretical bounds for paired binary data.",
+        " psi.d must satisfy: ",
+        round(psi.d.lower, 4), " <= psi.d <= ",
+        round(psi.d.upper, 4),
+        ". You provided psi.d = ", psi.d
+      )
+    )
+  }
+
+  # Specificity bounds
+  psi.nd.lower <- abs(sp.c - sp.e)
+  psi.nd.upper <- sp.c + sp.e - 2*sp.c*sp.e
+
+  if(psi.nd < psi.nd.lower || psi.nd > psi.nd.upper){
+    stop(
+      paste0("psi.nd outside theoretical bounds for paired binary data.",
+        "psi.nd must satisfy: ",
+        round(psi.nd.lower, 4), " <= psi.nd <= ",
+        round(psi.nd.upper, 4),
+        ". You provided psi.nd = ", psi.nd
+      )
+    )
+  }
+
+  # ==========================================================
+  # Sample size for a single endpoint
+  # ==========================================================
+  n_endpoint <- function(alpha, beta, c, e, psi,  delta=0, type){
+
+    z.beta <- qnorm(1 - beta)
+    z.alpha <- qnorm(1-alpha/2)
+    d   <- e - c # difference in paired proportions
+
+    # Superiority: Maria stark (2022)
+    # -----------------------------
+    if(type == "sup"){
+      n <- (z.alpha*psi+z.beta*sqrt((psi^2)-0.25*((d^2)*(3+psi))))^2 /(psi*(d^2))
+    }
+
+    # Non-inferiority: Liu score method
+    # Requires quadratic solution for p_bar_01 (p̄01)
+    # -----------------------------
+    if(type == "ni"){
+      # ---- NEW CHECK 1: Alternative must hold ----
+      if(delta + d <= 0)
+        stop("NI alternative not satisfied: delta + (e - c) must be > 0.")
+
+      p01<-(psi-d)/2
+      b_u<-delta*(delta+1)*p01
+      a_u<-(-d)*(1-delta)-2*(p01+delta)
+      # ---- NEW CHECK 2: Discriminant positive ----
+      disc <- a_u^2 - 8*b_u
+      if(disc <= 0)
+        stop(paste0(
+          "Invalid NI configuration: no real solution exists for the assumed ",
+          "margin (delta = ", delta,
+          ") and discordance (psi = ", psi, "). ",
+          "The margin may be too small or psi too close to its boundary."
+        ))
+
+      p_bar_01<-(-a_u+sqrt(disc))/4
+      w_u<-sqrt(2*p01+d-d^2)/sqrt(2*p_bar_01-delta-delta^2)
+
+
+      n <- ((psi -d^2)*(z.beta+z.alpha/w_u)^2)/(delta+d)^2
+
+    }
+    return(n)
+  }
+
+  # ==========================================================
+  # Beta allocation under IUT:
+  # (1 - beta.se)(1 - beta.sp) = overall.power
+  # ==========================================================
+  beta.grid <- seq(1e-6, 1 - power - 1e-6, length.out = 10000)
+
+  diff.values <- vapply(beta.grid, function(beta.se){
+
+    beta.sp <- 1 - power/(1 - beta.se)
 
     if(beta.sp <= 0 || beta.sp >= 1) return(Inf)
 
-    n.se <- n_endpoint(alpha=alpha, beta=beta.se,
-                       c=se.c, e=se.e,
-                       psi=psi.d,
-                       delta=delta.se,
-                       type=type.se)
+    n.se <- n_endpoint(alpha, beta.se,
+                       se.c, se.e,
+                       psi.d,
+                       delta.se,
+                       type.se)
 
-    n.sp <- n_endpoint(alpha=alpha, beta=beta.sp,
-                       c=sp.c, e=sp.e,
-                       psi=psi.nd,
-                       delta=delta.sp,
-                       type=type.sp)
+    n.sp <- n_endpoint(alpha, beta.sp,
+                       sp.c, sp.e,
+                       psi.nd,
+                       delta.sp,
+                       type.sp)
 
     N.se <- n.se / prev
     N.sp <- n.sp / (1 - prev)
 
-    return(N.se - N.sp)
-  }
+    abs(N.se - N.sp)
 
-  beta.se <- uniroot(f_root,
-                     lower = 1e-8,
-                     upper = 1-power-1e-8)$root
+  }, numeric(1))
 
-  beta.sp <- (power + beta.se - 1)/(beta.se - 1)
+  beta.se <- beta.grid[which.min(diff.values)]
+  beta.sp <- 1-power/(1-beta.se)
 
   # -----------------------------
   # Final sample sizes
   # -----------------------------
+  #sample size of disease individuals
   n.se <- n_endpoint(alpha=alpha, beta=beta.se,
                      c=se.c, e=se.e,
                      psi=psi.d,
                      delta=delta.se,
                      type=type.se)
-
+  #sample size of non-disease individuals
   n.sp <- n_endpoint(alpha=alpha, beta=beta.sp,
                      c=sp.c, e=sp.e,
                      psi=psi.nd,
                      delta=delta.sp,
                      type=type.sp)
 
-  N.se <- n.se / prev
-  N.sp <- n.sp / (1-prev)
+  N.se <- n.se / prev #total sample size including at least n_se individuals
+  N.sp <- n.sp / (1-prev)#total sample size including at least n_sp individuals
 
-  N<- ceiling(max(N.se, N.sp))
+  N<- max(N.se, N.sp)
 
-  # -----------------------------
-  # Power check
-  # -----------------------------
+  # ==========================================================
+  # Power calculation (consistency check)
+  # ==========================================================
   power_endpoint <- function(n, alpha, c, e, psi, delta=0, type) {
 
+    z.alpha<-qnorm(1-alpha/2)
+    d<-e-c
+
     if(type == "sup"){
-      diff <- abs(c-e)
-      z <- (sqrt(n*psi)*(diff) - qnorm(1-alpha/2)*psi)/sqrt((psi^2)-0.25*(diff^2)*(3+psi))
+      z <- (sqrt(n*psi)*(d) - z.alpha*psi)/sqrt((psi^2)-0.25*(d^2)*(3+psi))
       power <- pnorm(z)
     }
     if(type == "ni"){
-      z.alpha <- qnorm(1-alpha/2)
-      p01<-(psi-e+c)/2
-      bu<-delta*(delta+1)*p01
-      au<-(e-c)*(1-delta)-2*(p01+delta)
-      p_bar_01<-(-au+sqrt(au^2-8*bu))/4
-      w_u<-sqrt(2*p01+(e-c)-(e-c)^2)/sqrt(2*p_bar_01-delta-delta^2)
-      z <- (-z.alpha/w_u)-(delta+(e-c))/sqrt((psi-(e-c)^2)/n)
-      power <- pnorm(z)
+      p01<-(psi-d)/2
+      b_u<-delta*(delta+1)*p01
+      a_u<-(-d)*(1-delta)-2*(p01+delta)
+      p_bar_01<-(-a_u+sqrt(a_u^2-8*b_u))/4
+      w_u<-sqrt(2*p01+d-d^2)/
+        sqrt(2*p_bar_01-delta-delta^2)
+      sigma<-sqrt((psi-d^2)/n)
+      z <- (z.alpha/w_u)-(delta+d)/sigma
+      power <- 1-pnorm(z)
     }
     return(power)
   }
@@ -315,5 +423,9 @@ paired_ss_opt_bin <- function(power,
   class(result) <- "dx_bin"
   return(result)
 }
+
+
+
+
 
 
