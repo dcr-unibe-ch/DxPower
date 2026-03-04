@@ -87,8 +87,44 @@ The function returns the achieved endpoint-specific powers and
 their joint probability for the specified total sample size.
 }
 \examples{
-power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
-power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+
+# Example 1: Achieved power for a fixed sample size
+# Objective: evaluate power to demonstrate that sensitivity
+# and specificity exceed pre-specified minimum values
+power_opt_bin(
+  N = 122,            # total sample size
+  prev = 0.5,         # disease prevalence
+  se.e = 0.85,        # expected sensitivity
+  se.min = 0.65,      # minimum acceptable sensitivity
+  sp.e = 0.85,        # expected specificity
+  sp.min = 0.55,      # minimum acceptable specificity
+  alpha = 0.025       # one-sided significance level
+)
+#same
+power_opt_bin(
+  N = 122,            # total sample size
+  prev = 0.5,         # disease prevalence
+  se.e = 0.85,        # expected sensitivity
+  se.min = 0.65,      # minimum acceptable sensitivity
+  sp.e = 0.85,        # expected specificity
+  sp.min = 0.55,      # minimum acceptable specificity
+  alpha = 0.025,      # one-sided significance level (default)
+  ci_method = "wald"  # default
+
+)
+
+# Example 2: Same design using logit-based confidence interval
+power_opt_bin(
+  N = 122,
+  prev = 0.5,
+  se.e = 0.85,
+  se.min = 0.65,
+  sp.e = 0.85,
+  sp.min = 0.55,
+  alpha = 0.025,
+  ci_method = "logit",
+  alternative = "one.sided"
+)
 }
 \references{
 Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation

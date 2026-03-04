@@ -105,6 +105,8 @@ the overall power is:
 
 No multiplicity adjustment of \eqn{\alpha} is required under the
 IUT framework.
+
+
 \strong{Endpoint-specific sample size formulas}
 
  Let \eqn{d = \theta_E - \theta_C} denote the difference between the
@@ -177,9 +179,48 @@ and multiplies them according to the IUT framework.
 No numerical optimisation or beta allocation is performed.
 }
 \examples{
-paired_power_opt_bin(N=134,prev=0.47,se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09,psi.nd=0.14,alpha=0.05)
-paired_power_opt_bin(N=134,prev=0.47,se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09,psi.nd=0.14,alpha=0.05,delta.se=0,delta.sp=0, type.se="sup",type.sp="sup")
-paired_power_opt_bin(N=134,prev=0.47,se.c=0.81, se.e=0.90,sp.c=0.66, sp.e=0.80,psi.d=0.09,psi.nd=0.14,alpha=0.05,delta.sp = 0.10,type.sp = "ni")
+
+# Example 1: Superiority for both sensitivity and specificity
+# Compute achieved power for a fixed total sample size
+paired_power_opt_bin(
+  N = 134,            # total sample size
+  prev = 0.47,        # disease prevalence
+  se.c = 0.81,        # comparator sensitivity
+  se.e = 0.90,        # experimental sensitivity
+  sp.c = 0.66,        # comparator specificity
+  sp.e = 0.80,        # experimental specificity
+  psi.d = 0.09,       # discordance (diseased)
+  psi.nd = 0.14,      # discordance (non-diseased)
+  alpha = 0.05
+)
+
+# Explicit superiority specification (same as default)
+paired_power_opt_bin(
+  N = 134,
+  prev = 0.47,
+  se.c = 0.81, se.e = 0.90,
+  sp.c = 0.66, sp.e = 0.80,
+  psi.d = 0.09,
+  psi.nd = 0.14,
+  alpha = 0.05,
+  type.se = "sup",
+  type.sp = "sup"
+)
+
+
+# Example 2: Sensitivity superiority and specificity non-inferiority
+# Non-inferiority margin for specificity = 0.10
+paired_power_opt_bin(
+  N = 134,
+  prev = 0.47,
+  se.c = 0.81, se.e = 0.90,
+  sp.c = 0.66, sp.e = 0.80,
+  psi.d = 0.09,
+  psi.nd = 0.14,
+  alpha = 0.05,
+  delta.sp = 0.10, # non-inferiority margin for specificity
+  type.sp = "ni"
+)
 }
 \references{
 Stark, M., Hesse, M., Brannath, W., & Zapf, A. (2022).
@@ -192,9 +233,18 @@ Liu, J. P., Hsueh, H. M., Hsieh, E., & Chen, J. J. (2002).
 Tests for equivalence or non-inferiority for paired binary data.
 \emph{Statistics in Medicine}, 21(2), 231–245.
 \doi{10.1002/sim.1012}
+
+Miettinen, O.S. (1968).
+The matched pairs design in the case of all-or-none responses.
+\emph{Biometrics}, 24(2), 339–352.
+\doi{10.2307/2528039}
 }
 \seealso{
-\code{\link{paired_ss_opt_bin}}
+\code{\link{paired_ss_opt_bin}} for sample size determination,
+\code{\link{ss_opt_bin}} and
+\code{\link{power_opt_bin}} for single-test design
+\code{\link{unpaired_ss_opt_bin}} and
+\code{\link{unpaired_power_opt_bin}} for unpaired designs.
 }
 \author{
 Maia Muresan (DCR Bern)
