@@ -75,8 +75,44 @@
 #'
 #' @export
 #' @examples
-#' power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025)
-#' power_opt_bin(N=122,prev=0.5,se.e=0.85, se.min=0.65,sp.e=0.85, sp.min=0.55,alpha = 0.025, ci_method="logit", alternative="two.sided")
+#'
+#' # Example 1: Achieved power for a fixed sample size
+#' # Objective: evaluate power to demonstrate that sensitivity
+#' # and specificity exceed pre-specified minimum values
+#' power_opt_bin(
+#'   N = 122,            # total sample size
+#'   prev = 0.5,         # disease prevalence
+#'   se.e = 0.85,        # expected sensitivity
+#'   se.min = 0.65,      # minimum acceptable sensitivity
+#'   sp.e = 0.85,        # expected specificity
+#'   sp.min = 0.55,      # minimum acceptable specificity
+#'   alpha = 0.025       # one-sided significance level
+#' )
+#' #same
+#' power_opt_bin(
+#'   N = 122,            # total sample size
+#'   prev = 0.5,         # disease prevalence
+#'   se.e = 0.85,        # expected sensitivity
+#'   se.min = 0.65,      # minimum acceptable sensitivity
+#'   sp.e = 0.85,        # expected specificity
+#'   sp.min = 0.55,      # minimum acceptable specificity
+#'   alpha = 0.025,      # one-sided significance level (default)
+#'   ci_method = "wald"  # default
+#'
+#' )
+#'
+#' # Example 2: Same design using logit-based confidence interval
+#' power_opt_bin(
+#'   N = 122,
+#'   prev = 0.5,
+#'   se.e = 0.85,
+#'   se.min = 0.65,
+#'   sp.e = 0.85,
+#'   sp.min = 0.55,
+#'   alpha = 0.025,
+#'   ci_method = "logit",
+#'   alternative = "one.sided"
+#' )
 
 power_opt_bin <- function(N,
                           prev,
@@ -119,8 +155,8 @@ power_opt_bin <- function(N,
   # -----------------------------
   if (ci_method == "wald") {
 
-    delta_se <- se.e - se.min
-    delta_sp <- sp.e - sp.min
+    d_se <- se.e - se.min
+    d_sp <- sp.e - sp.min
 
     v_se.min <- se.min * (1 - se.min)
     v_se.e <- se.e * (1 - se.e)
@@ -131,8 +167,8 @@ power_opt_bin <- function(N,
 
   } else if (ci_method == "logit") {
 
-    delta_se <- logit(se.e) - logit(se.min)
-    delta_sp <- logit(sp.e) - logit(sp.min)
+    d_se <- logit(se.e) - logit(se.min)
+    d_sp <- logit(sp.e) - logit(sp.min)
 
     v_se.min <- 1 / (se.min * (1 - se.min))
     v_se.e <- 1 / (se.e * (1 - se.e))
@@ -145,11 +181,11 @@ power_opt_bin <- function(N,
   # Endpoint-specific power
   # -----------------------------
   #Sensitivity power
-  z_beta_se <- (sqrt(Nd) * delta_se - z_alpha * sqrt(v_se.min)) / sqrt(v_se.e)
+  z_beta_se <- (sqrt(Nd) * d_se - z_alpha * sqrt(v_se.min)) / sqrt(v_se.e)
   power_se <- pnorm(z_beta_se)
 
   # Specificity power
-  z_beta_sp <- (sqrt(Nh) * delta_sp - z_alpha * sqrt(v_sp.min)) / sqrt(v_sp.e)
+  z_beta_sp <- (sqrt(Nh) * d_sp - z_alpha * sqrt(v_sp.min)) / sqrt(v_sp.e)
   power_sp <- pnorm(z_beta_sp)
 
   # -----------------------------
