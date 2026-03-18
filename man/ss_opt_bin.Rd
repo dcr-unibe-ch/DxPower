@@ -2,32 +2,148 @@
 % Please edit documentation in R/ss_opt_bin.R
 \name{ss_opt_bin}
 \alias{ss_opt_bin}
-\title{Optimal Power Allocation for Sensitivity and Specificity}
+\title{Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints - Single-test design}
 \usage{
-ss_opt_bin(se1, se0, sp1, sp0, alpha = 0.025, prev = 0.5, pwr = 0.8)
+ss_opt_bin(
+  power,
+  prev,
+  se.e,
+  se.min,
+  sp.e,
+  sp.min,
+  alpha = 0.025,
+  ci_method = c("wald", "logit"),
+  alternative = c("one.sided", "two.sided")
+)
 }
 \arguments{
-\item{se1}{Sensitivity under alternative hypothesis}
-
-\item{se0}{Sensitivity under null hypothesis}
-
-\item{sp1}{Specificity under alternative hypothesis}
-
-\item{sp0}{Specificity under null hypothesis}
-
-\item{alpha}{One-sided type I error}
+\item{power}{Overall desired power}
 
 \item{prev}{Disease prevalence}
 
-\item{pwr}{Overall desired power}
+\item{se.e}{Sensitivity under alternative hypothesis}
+
+\item{se.min}{Sensitivity under null hypothesis}
+
+\item{sp.e}{Specificity under alternative hypothesis}
+
+\item{sp.min}{Specificity under null hypothesis}
+
+\item{alpha}{Type I error level.}
+
+\item{ci_method}{Normal approximation method: "wald" (default) or "logit".}
+
+\item{alternative}{"one.sided" (default) or "two.sided".}
 }
 \value{
-A list containing allocated powers and required sample sizes
+An object of class "dx_bin" containing:
+\itemize{
+  \item design specifications(design specifications (alpha level, testing framework, CI method)
+  \item required total sample size,
+  \item subgroup sample sizes,
+  \item target overall power
+  \item allocated endpoint-specific powers.
+
+}
 }
 \description{
-Computes optimal allocation of power between sensitivity and specificity
-tests such that required sample sizes are equal.
+The function determines the minimal total sample size required to achieve
+a prespecified overall power in a confirmatory diagnostic accuracy study with
+co-primary endpoints (sensitivity and specificity).
+
+Both endpoints must demonstrate superiority over fixed null values.
+Overall power is defined under an intersection–union testing (IUT)
+framework, meaning that both null hypotheses must be rejected for
+the study to be successful. Under this framework, the global Type I
+error rate is controlled at level \eqn{\alpha} without multiplicity
+adjustment.
+
+The calculation explicitly accounts for disease prevalence, which
+determines the expected number of diseased and non-diseased subjects.
+}
+\details{
+Let \eqn{\pi} denote the assumed disease prevalence. The study population
+is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
+(\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
+
+When prevalence is very low or very high, one subgroup may require
+substantially more subjects than the other. A naive calculation (e.g. taking
+the maximum of two independently calculated sample sizes) may
+therefore overpower one endpoint while the other determines the
+required total sample size.
+
+This function implements an optimal joint sample size calculation
+that balances both endpoints simultaneously. Endpoint-specific powers
+are allocated such that:
+
+\itemize{
+  \item the overall power equals the target value,
+  \item both endpoints imply the same required total sample size,
+  \item neither sensitivity nor specificity is unnecessarily overpowered.
+}
+Sample size formulas are based on large-sample normal approximations
+for binomial proportions using either:
+\itemize{
+  \item the Wald approximation on the probability scale, or
+  \item the logit-transformed normal approximation.
+}
+
+The endpoint-specific powers are determined numerically by solving
+a root-finding problem under the overall power constraint:
+\deqn{
+Power_{overall} = Power_{Se} \times Power_{Sp}.
+}
+
+The methodology follows the joint sample size framework for single-arm
+confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (2020).
+
+In the single-test design there is no distinction between superiority and non-inferiority.
+}
+\examples{
+# Example 1: Sample size calculation for a single diagnostic test
+# Objective: demonstrate that sensitivity and specificity exceed
+# pre-specified minimum acceptable values
+ss_opt_bin(
+  power = 0.80,        # desired power
+  prev = 0.5,          # disease prevalence
+  se.e = 0.85,         # expected sensitivity
+  se.min = 0.65,       # minimum acceptable sensitivity
+  sp.e = 0.85,         # expected specificity
+  sp.min = 0.55,       # minimum acceptable specificity
+  alpha = 0.025        # one-sided significance level
+)
+#same
+ss_opt_bin(
+  power = 0.80,        # desired power
+  prev = 0.5,          # disease prevalence
+  se.e = 0.85,         # expected sensitivity
+  se.min = 0.65,       # minimum acceptable sensitivity
+  sp.e = 0.85,         # expected specificity
+  sp.min = 0.55,       # minimum acceptable specificity
+  alpha = 0.025,        # one-sided significance level (default)
+  ci_method = "wald",   # default
+  alternative = "one.sided" #default
+)
+# Example 2: Same design using logit-based confidence interval
+ss_opt_bin(
+  power = 0.80,
+  prev = 0.5,
+  se.e = 0.85,
+  se.min = 0.65,
+  sp.e = 0.85,
+  sp.min = 0.55,
+  alpha = 0.025,
+  ci_method = "logit",
+  alternative = "one.sided"
+)
+}
+\references{
+Stark, M., & Zapf, A. (2020).
+Sample size calculation and re-estimation based on the prevalence
+in a single-arm confirmatory diagnostic accuracy study.
+\emph{Statistical Methods in Medical Research}, 29(10), 2958–2971.
+\doi{10.1177/0962280220913588}
 }
 \author{
-Ainesh Sewak (DCR Bern)
+Ainesh Sewak & Maia Muresan (DCR Bern)
 }

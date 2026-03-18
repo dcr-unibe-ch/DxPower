@@ -2,42 +2,141 @@
 % Please edit documentation in R/power_opt_bin.R
 \name{power_opt_bin}
 \alias{power_opt_bin}
-\title{Overall Power for Confirmatory Diagnostic Accuracy Study}
+\title{Power calculation for Single-test
+Diagnostic Accuracy Study with Co-Primary Endpoints}
 \usage{
-power_opt_bin(N, prev, se1, se0, sp1, sp0, alpha = 0.025)
+power_opt_bin(
+  N,
+  prev,
+  se.e,
+  se.min,
+  sp.e,
+  sp.min,
+  alpha = 0.025,
+  ci_method = c("wald", "logit"),
+  alternative = c("one.sided", "two.sided")
+)
 }
 \arguments{
-\item{N}{Total sample size}
+\item{N}{Total sample size.}
 
-\item{prev}{Disease prevalence (0 < prev < 1)}
+\item{prev}{Disease prevalence (0 < prev < 1).}
 
-\item{se1}{Sensitivity under the alternative hypothesis}
+\item{se.e}{Sensitivity under the alternative hypothesis.}
 
-\item{se0}{Sensitivity under the null hypothesis}
+\item{se.min}{Sensitivity under the null hypothesis.}
 
-\item{sp1}{Specificity under the alternative hypothesis}
+\item{sp.e}{Specificity under the alternative hypothesis.}
 
-\item{sp0}{Specificity under the null hypothesis}
+\item{sp.min}{Specificity under the null hypothesis.}
 
-\item{alpha}{One-sided type I error (default 0.025)}
+\item{alpha}{Type I error level.}
+
+\item{ci_method}{Normal approximation method: "wald" (default) or "logit".}
+
+\item{alternative}{"one.sided" (default) or "two.sided".}
 }
 \value{
-A named list containing:
-  \item{overall}{Overall power}
-  \item{pwr_se}{Power for sensitivity}
-  \item{pwr_sp}{Power for specificity}
+An object of class `"dx_bin"` containing:
+\itemize{
+  \item design specifications (design specifications (alpha level, testing framework, CI method)
+  \item achieved overall power,
+  \item endpoint-specific powers,
+  \item subgroup sample sizes.
+}
 }
 \description{
-Computes the overall power for co-primary superiority tests on
-sensitivity and specificity using a normal approximation.
+The function determines the achieved overall power for a confirmatory diagnostic
+accuracy study with co-primary endpoints (sensitivity and specificity)
+for a fixed total sample size.
+
+Both endpoints are tested for superiority against fixed null values.
+Study success requires rejection of both null hypotheses.
+Overall power is therefore defined under an intersection–union
+testing (IUT) framework, meaning that both tests must be significant.
+Under this framework, the global Type I error rate is controlled
+at level \eqn{\alpha} without multiplicity adjustment.
+
+The calculation explicitly incorporates the assumed disease prevalence,
+which determines the expected number of diseased and non-diseased subjects.
 }
 \details{
-The function assumes one-sided hypothesis tests for:
-  H0: Se <= Se0  vs  H1: Se > Se0
-  H0: Sp <= Sp0  vs  H1: Sp > Sp0
+Let \eqn{\pi} denote the assumed disease prevalence. The study population
+is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
+(\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
 
-Overall power is calculated under an intersection-union framework,
-i.e., both tests must reject the null hypothesis.
+Endpoint-specific powers are derived from the asymptotic normal
+test statistics corresponding to the sample size formulas.
+The implementation uses large-sample approximations for binomial
+proportions based on either:
+\itemize{
+  \item the Wald approximation on the probability scale, or
+  \item the logit-transformed normal approximation.
+}
+
+Under standard binomial sampling assumptions, the estimators of
+sensitivity and specificity are asymptotically independent.
+
+Overall power is therefore computed as:
+
+\deqn{
+Power_{overall} = Power_{Se} \times Power_{Sp}.
+}
+
+The function returns the achieved endpoint-specific powers and
+their joint probability for the specified total sample size.
+}
+\examples{
+
+# Example 1: Achieved power for a fixed sample size
+# Objective: evaluate power to demonstrate that sensitivity
+# and specificity exceed pre-specified minimum values
+power_opt_bin(
+  N = 122,            # total sample size
+  prev = 0.5,         # disease prevalence
+  se.e = 0.85,        # expected sensitivity
+  se.min = 0.65,      # minimum acceptable sensitivity
+  sp.e = 0.85,        # expected specificity
+  sp.min = 0.55,      # minimum acceptable specificity
+  alpha = 0.025       # one-sided significance level
+)
+#same
+power_opt_bin(
+  N = 122,            # total sample size
+  prev = 0.5,         # disease prevalence
+  se.e = 0.85,        # expected sensitivity
+  se.min = 0.65,      # minimum acceptable sensitivity
+  sp.e = 0.85,        # expected specificity
+  sp.min = 0.55,      # minimum acceptable specificity
+  alpha = 0.025,      # one-sided significance level (default)
+  ci_method = "wald"  # default
+
+)
+
+# Example 2: Same design using logit-based confidence interval
+power_opt_bin(
+  N = 122,
+  prev = 0.5,
+  se.e = 0.85,
+  se.min = 0.65,
+  sp.e = 0.85,
+  sp.min = 0.55,
+  alpha = 0.025,
+  ci_method = "logit",
+  alternative = "one.sided"
+)
+}
+\references{
+Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
+based on the prevalence in a single-arm confirmatory diagnostic accuracy
+study. *Statistical Methods in Medical Research*, 29(10), 2958–2971.
+\doi{10.1177/0962280220913588}
+The power calculation implemented in this function is consistent with
+the asymptotic normal framework underlying the sample size methodology
+described in the above reference.
+}
+\seealso{
+\code{\link{ss_opt_bin}}
 }
 \author{
 Maia Muresan (DCR Bern)
