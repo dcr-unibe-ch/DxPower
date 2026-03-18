@@ -42,7 +42,6 @@
 #' The function returns the achieved endpoint-specific powers and
 #' their joint probability for the specified total sample size.
 #' @seealso \code{\link{ss_opt_bin}}
-
 #' @references
 #' Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
 #' based on the prevalence in a single-arm confirmatory diagnostic accuracy
@@ -70,7 +69,6 @@
 #'   \item achieved overall power,
 #'   \item endpoint-specific powers,
 #'   \item subgroup sample sizes.
-
 #' }
 #'
 #' @export
@@ -96,8 +94,7 @@
 #'   se.min = 0.65,      # minimum acceptable sensitivity
 #'   sp.e = 0.85,        # expected specificity
 #'   sp.min = 0.55,      # minimum acceptable specificity
-#'   alpha = 0.025,      # one-sided significance level (default)
-#'   ci_method = "wald"  # default
+#'   alpha = 0.025,      # one-sided significance level (default)#'   ci_method = "wald"  # default
 #'
 #' )
 #'
@@ -220,4 +217,5 @@ power_opt_bin <- function(N,
   class(result) <- "dx_bin"
   return(result)
 }
+
 
