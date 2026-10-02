@@ -108,8 +108,7 @@ power_opt_bin(
   se.min = 0.65,      # minimum acceptable sensitivity
   sp.e = 0.85,        # expected specificity
   sp.min = 0.55,      # minimum acceptable specificity
-  alpha = 0.025,      # one-sided significance level (default)
-  ci_method = "wald"  # default
+  alpha = 0.025,      # one-sided significance level (default)#'   ci_method = "wald"  # default
 
 )
 
