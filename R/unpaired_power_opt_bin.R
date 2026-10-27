@@ -41,9 +41,19 @@
 #'   \code{"sup"} (superiority, default) or \code{"ni"} (non-inferiority).
 #' @param type.sp Type of hypothesis for specificity:
 #'   \code{"sup"} (superiority, default) or \code{"ni"} (non-inferiority).
+#' @param rho Correlation between the sensitivity and specificity estimators
+#'   (default 0, i.e. independent endpoints). Overall power is the
+#'   probability that both test statistics exceed their critical values under
+#'   a bivariate normal distribution with this correlation.
+#' @param variance Variance of the difference estimator under the null used
+#'   for the critical value: \code{"null"} (default; variance at the comparator
+#'   proportion for superiority, alternative variance for non-inferiority),
+#'   \code{"pooled"} (pooled proportion \eqn{(c+e)/2}) or \code{"unpooled"}
+#'   (alternative variance). The alternative variance is always unpooled.
 #' @author Maia Muresan (DCR Bern)
 #'
 #' @importFrom stats approx pnorm qnorm spline uniroot
+#' @importFrom mvtnorm pmvnorm TVPACK
 #' @return An object of class `"dx_bin"` containing:
 #' \itemize{
 #'   \item design specifications (design specifications (alpha level, testing framework, CI method)
@@ -88,53 +98,76 @@ unpaired_power_opt_bin <- function(
     delta.se=0,
     delta.sp=0,
     type.se=c("sup","ni"),
-    type.sp=c("sup","ni")) {
+    type.sp=c("sup","ni"),
+    rho = 0,
+    variance = c("null", "pooled", "unpooled")) {
 
   type.se <- match.arg(type.se)
   type.sp <- match.arg(type.sp)
+  variance <- match.arg(variance)
+
+  if (rho <= -1 || rho >= 1) stop("rho must be strictly between -1 and 1.")
 
   # the variance function
   v <- function(c,e){
     c*(1-c) + e*(1-e)
   }
 
-  # power for one endpoint
-  # ---------- endpoint power ----------
-  power_endpoint <- function(n, alpha, c, e, delta, type){
+  # per-endpoint ingredients of the test "estimated difference > threshold":
+  #   mean      = true difference + NI margin (0 for superiority)
+  #   var       = variance of the difference estimator under the alternative / n
+  #   threshold = z_alpha * sd of the estimator under the null / sqrt(n)
+  endpoint_params <- function(n, alpha, c, e, delta, type){
     z.alpha <- qnorm(1-alpha/2)
+    margin  <- if(type == "ni") delta else 0
 
-    if(type == "sup"){
-      effect  <- c - e
-      V0 <- v(c,c)
-      VA <- v(c,e)
-      z <- (sqrt(n)*effect - z.alpha*sqrt(V0)) / sqrt(VA)
-    }
+    VA <- v(c,e)
+    V0 <- switch(variance,
+      pooled   = {p.bar <- (c + e)/2; 2*p.bar*(1-p.bar)},
+      unpooled = VA,
+      null     = if(type == "sup") v(c,c) else VA)
 
-    if(type == "ni"){
-      effect  <- c - e - delta
-      VA <- v(c,e)
-      z <- ((sqrt(n)*(effect)/sqrt(VA))-z.alpha)
-    }
-
-    power <- 1 - pnorm(z)
-
-    return(power)
+    list(mean = (e - c) + margin,
+         var  = VA / n,
+         thr  = z.alpha * sqrt(V0 / n))
   }
 
   # sample sizes per endpoint per arm
   Nd <- N * prev #diseased
   Nh <- N * (1 - prev) #non-diseased(healty)
 
-  # compute powers
-  power.se <- power_endpoint(n=Nd, alpha=alpha,
-                             c=se.c, e=se.e,
-                             delta=delta.se, type=type.se)
+  par.se <- endpoint_params(n=Nd, alpha=alpha,
+                            c=se.c, e=se.e,
+                            delta=delta.se, type=type.se)
+  par.sp <- endpoint_params(n=Nh, alpha=alpha,
+                            c=sp.c, e=sp.e,
+                            delta=delta.sp, type=type.sp)
 
-  power.sp <- power_endpoint(n=Nh, alpha=alpha,
-                             c=sp.c, e=sp.e,
-                             delta=delta.sp, type=type.sp)
+  # marginal powers
+  power.se <- 1 - pnorm(par.se$thr, par.se$mean, sqrt(par.se$var))
+  power.sp <- 1 - pnorm(par.sp$thr, par.sp$mean, sqrt(par.sp$var))
 
-  power.total <- power.se * power.sp
+  # joint power: P(both estimated differences exceed their thresholds)
+  # under a bivariate normal with diagonal binomial variances and
+  # correlation rho between the sensitivity and specificity estimators
+  K <- 2
+  R <- diag(K)
+  R[1, 2] <- R[2, 1] <- rho
+
+  if (min(eigen(R, symmetric = TRUE)$values) <= 0)
+    stop("R is not positive definite; choose different rho's.")
+
+  V <- diag(c(par.se$var, par.sp$var))
+  D <- diag(sqrt(diag(V)))
+  Sigma <- D %*% R %*% D
+
+  power.total <- as.numeric(
+    mvtnorm::pmvnorm(lower = c(par.se$thr, par.sp$thr),
+                     upper = c(Inf, Inf),
+                     mean  = c(par.se$mean, par.sp$mean),
+                     sigma = Sigma,
+                     algorithm = mvtnorm::TVPACK())
+  )
 
   result <- list(
     alpha = alpha,
@@ -147,6 +180,7 @@ unpaired_power_opt_bin <- function(
     overall_power = power.total,
     power_se = power.se,
     power_sp = power.sp,
+    rho = rho,
     N_se = Nd,
     N_sp = Nh,
     N_tot = N,
@@ -156,5 +190,3 @@ unpaired_power_opt_bin <- function(
   class(result) <- "dx_bin"
   return(result)
 }
-
-

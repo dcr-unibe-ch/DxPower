@@ -16,7 +16,9 @@ unpaired_ss_opt_bin(
   delta.se = 0,
   delta.sp = 0,
   type.se = c("sup", "ni"),
-  type.sp = c("sup", "ni")
+  type.sp = c("sup", "ni"),
+  rho = 0,
+  variance = c("null", "pooled", "unpooled")
 )
 }
 \arguments{
@@ -45,6 +47,13 @@ unpaired_ss_opt_bin(
 
 \item{type.sp}{Type of hypothesis for specificity:
 \code{"sup"} (superiority, default) or \code{"ni"} (non-inferiority).}
+
+\item{rho}{Correlation between the sensitivity and specificity estimators
+(default 0); see \code{\link{unpaired_power_opt_bin}}.}
+
+\item{variance}{Null variance used for the critical value
+(\code{"null"}, \code{"pooled"} or \code{"unpooled"}); see
+\code{\link{unpaired_power_opt_bin}}.}
 }
 \value{
 An object of class "dx_bin" containing:

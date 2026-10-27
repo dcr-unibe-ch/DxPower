@@ -16,7 +16,9 @@ unpaired_power_opt_bin(
   delta.se = 0,
   delta.sp = 0,
   type.se = c("sup", "ni"),
-  type.sp = c("sup", "ni")
+  type.sp = c("sup", "ni"),
+  rho = 0,
+  variance = c("null", "pooled", "unpooled")
 )
 }
 \arguments{
@@ -45,6 +47,17 @@ unpaired_power_opt_bin(
 
 \item{type.sp}{Type of hypothesis for specificity:
 \code{"sup"} (superiority, default) or \code{"ni"} (non-inferiority).}
+
+\item{rho}{Correlation between the sensitivity and specificity estimators
+(default 0, i.e. independent endpoints). Overall power is the
+probability that both test statistics exceed their critical values under
+a bivariate normal distribution with this correlation.}
+
+\item{variance}{Variance of the difference estimator under the null used
+for the critical value: \code{"null"} (default; variance at the comparator
+proportion for superiority, alternative variance for non-inferiority),
+\code{"pooled"} (pooled proportion \eqn{(c+e)/2}) or \code{"unpooled"}
+(alternative variance). The alternative variance is always unpooled.}
 }
 \value{
 An object of class `"dx_bin"` containing:

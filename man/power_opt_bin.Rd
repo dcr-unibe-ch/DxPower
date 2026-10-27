@@ -14,7 +14,8 @@ power_opt_bin(
   sp.min,
   alpha = 0.025,
   ci_method = c("wald", "logit"),
-  alternative = c("one.sided", "two.sided")
+  alternative = c("one.sided", "two.sided"),
+  rho = 0
 )
 }
 \arguments{
@@ -35,6 +36,11 @@ power_opt_bin(
 \item{ci_method}{Normal approximation method: "wald" (default) or "logit".}
 
 \item{alternative}{"one.sided" (default) or "two.sided".}
+
+\item{rho}{Correlation between the sensitivity and specificity test
+statistics (default 0). Sensitivity and specificity are estimated in
+disjoint subgroups, so 0 is the natural value; non-zero values are
+intended for sensitivity analyses.}
 }
 \value{
 An object of class `"dx_bin"` containing:
@@ -77,7 +83,10 @@ proportions based on either:
 Under standard binomial sampling assumptions, the estimators of
 sensitivity and specificity are asymptotically independent.
 
-Overall power is therefore computed as:
+Overall power is the probability that both test statistics exceed their
+critical values, computed as a bivariate normal probability
+(\code{mvtnorm::pmvnorm}, TVPACK) with correlation \code{rho}. With the
+default \code{rho = 0} this equals
 
 \deqn{
 Power_{overall} = Power_{Se} \times Power_{Sp}.
@@ -108,8 +117,7 @@ power_opt_bin(
   se.min = 0.65,      # minimum acceptable sensitivity
   sp.e = 0.85,        # expected specificity
   sp.min = 0.55,      # minimum acceptable specificity
-  alpha = 0.025,      # one-sided significance level (default)
-  ci_method = "wald"  # default
+  alpha = 0.025,      # one-sided significance level (default)#'   ci_method = "wald"  # default
 
 )
 

@@ -33,7 +33,10 @@
 #' Under standard binomial sampling assumptions, the estimators of
 #' sensitivity and specificity are asymptotically independent.
 #'
-#' Overall power is therefore computed as:
+#' Overall power is the probability that both test statistics exceed their
+#' critical values, computed as a bivariate normal probability
+#' (\code{mvtnorm::pmvnorm}, TVPACK) with correlation \code{rho}. With the
+#' default \code{rho = 0} this equals
 #'
 #' \deqn{
 #' Power_{overall} = Power_{Se} \times Power_{Sp}.
@@ -60,9 +63,14 @@
 #' @param alpha Type I error level.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
+#' @param rho Correlation between the sensitivity and specificity test
+#'   statistics (default 0). Sensitivity and specificity are estimated in
+#'   disjoint subgroups, so 0 is the natural value; non-zero values are
+#'   intended for sensitivity analyses.
 #' @author Maia Muresan (DCR Bern)
 #'
 #' @importFrom stats approx pnorm qnorm spline
+#' @importFrom mvtnorm pmvnorm TVPACK
 #' @return An object of class `"dx_bin"` containing:
 #' \itemize{
 #'   \item design specifications (design specifications (alpha level, testing framework, CI method)
@@ -116,7 +124,8 @@ power_opt_bin <- function(N,
                           se.e, se.min,
                           sp.e, sp.min,
                           alpha = 0.025, ci_method=c("wald", "logit"),
-                          alternative=c("one.sided","two.sided")
+                          alternative=c("one.sided","two.sided"),
+                          rho = 0
 ) {
 
   ci_method   <- match.arg(ci_method)
@@ -124,6 +133,7 @@ power_opt_bin <- function(N,
   # -----------------------------
   # Input validation
   # -----------------------------
+  if (rho <= -1 || rho >= 1) stop("rho must be strictly between -1 and 1.")
   if (N <= 0) stop("N must be positive.")
   if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
   if (se.e <= se.min) stop("se.e must be greater than se.min.")
@@ -188,8 +198,15 @@ power_opt_bin <- function(N,
   # -----------------------------
   # Overall power (IUT framework)
   # -----------------------------
-
-  overall_power <- power_se * power_sp
+  # P(both tests reject) = P(Z_se < z_beta_se, Z_sp < z_beta_sp) for standard
+  # normal Z with correlation rho (rho = 0 gives power_se * power_sp)
+  R <- matrix(c(1, rho, rho, 1), 2)
+  overall_power <- as.numeric(
+    mvtnorm::pmvnorm(lower = c(-Inf, -Inf),
+                     upper = c(z_beta_se, z_beta_sp),
+                     corr  = R,
+                     algorithm = mvtnorm::TVPACK())
+  )
 
 
   # -----------------------------
@@ -208,6 +225,7 @@ power_opt_bin <- function(N,
     overall_power = overall_power,
     power_se = power_se,
     power_sp = power_sp,
+    rho = rho,
     N_se = Nd,
     N_sp = Nh,
     N_tot = N,

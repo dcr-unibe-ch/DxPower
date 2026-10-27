@@ -13,7 +13,8 @@ ss_opt_bin(
   sp.min,
   alpha = 0.025,
   ci_method = c("wald", "logit"),
-  alternative = c("one.sided", "two.sided")
+  alternative = c("one.sided", "two.sided"),
+  rho = 0
 )
 }
 \arguments{
@@ -34,6 +35,11 @@ ss_opt_bin(
 \item{ci_method}{Normal approximation method: "wald" (default) or "logit".}
 
 \item{alternative}{"one.sided" (default) or "two.sided".}
+
+\item{rho}{Correlation between the sensitivity and specificity test
+statistics (default 0). Sensitivity and specificity are estimated in
+disjoint subgroups, so 0 is the natural value; non-zero values are
+intended for sensitivity analyses.}
 }
 \value{
 An object of class "dx_bin" containing:
@@ -41,8 +47,8 @@ An object of class "dx_bin" containing:
   \item design specifications(design specifications (alpha level, testing framework, CI method)
   \item required total sample size,
   \item subgroup sample sizes,
-  \item target overall power
-  \item allocated endpoint-specific powers.
+  \item target overall power and achieved overall power (\code{overall_power})
+  \item achieved endpoint-specific powers.
 
 }
 }
@@ -72,27 +78,25 @@ the maximum of two independently calculated sample sizes) may
 therefore overpower one endpoint while the other determines the
 required total sample size.
 
-This function implements an optimal joint sample size calculation
-that balances both endpoints simultaneously. Endpoint-specific powers
-are allocated such that:
-
-\itemize{
-  \item the overall power equals the target value,
-  \item both endpoints imply the same required total sample size,
-  \item neither sensitivity nor specificity is unnecessarily overpowered.
-}
-Sample size formulas are based on large-sample normal approximations
+This function implements a joint sample size calculation that accounts
+for both endpoints simultaneously: the required total sample size is the
+smallest integer \eqn{N} for which the overall power, as computed by
+\code{\link{power_opt_bin}}, reaches the target. Neither sensitivity nor
+specificity is treated as the sole driver of the sample size.
+Power is based on large-sample normal approximations
 for binomial proportions using either:
 \itemize{
   \item the Wald approximation on the probability scale, or
   \item the logit-transformed normal approximation.
 }
 
-The endpoint-specific powers are determined numerically by solving
-a root-finding problem under the overall power constraint:
+Overall power is the bivariate normal probability that both tests reject
+(\code{mvtnorm::pmvnorm}), with correlation \code{rho} between the two
+test statistics. With the default \code{rho = 0} this equals
 \deqn{
 Power_{overall} = Power_{Se} \times Power_{Sp}.
 }
+\eqn{N} is found by bracketing (doubling) and bisection.
 
 The methodology follows the joint sample size framework for single-arm
 confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (2020).

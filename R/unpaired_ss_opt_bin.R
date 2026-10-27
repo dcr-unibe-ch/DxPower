@@ -135,6 +135,11 @@
 #' @param sp.c Specificity of the comparator test.
 #' @param sp.e Specificity of the experimental test.
 #' @param alpha Type I error rate per endpoint.
+#' @param rho Correlation between the sensitivity and specificity estimators
+#'   (default 0); see \code{\link{unpaired_power_opt_bin}}.
+#' @param variance Null variance used for the critical value
+#'   (\code{"null"}, \code{"pooled"} or \code{"unpooled"}); see
+#'   \code{\link{unpaired_power_opt_bin}}.
 #' @param delta.se Non-inferiority margin for sensitivity
 #'   (used only if \code{type.se = "ni"}).
 #' @param delta.sp Non-inferiority margin for specificity
@@ -196,137 +201,38 @@ unpaired_ss_opt_bin <- function ( power,
                                   delta.se=0,
                                   delta.sp=0,
                                   type.se=c("sup","ni"),
-                                  type.sp=c("sup","ni")) {
-  # parameter description
-  # alpha: desired type I error rate per endpoint
+                                  type.sp=c("sup","ni"),
+                                  rho = 0,
+                                  variance = c("null", "pooled", "unpooled")) {
   # power: desired overall power
-  # se.c: sensitivity of the comparator test
-  # se.e: sensitivity of the experimental test
-  # sp.c: specificity of the comparator test
-  # sp.e: specificity of the experimental test
-  # prev: prevalence
+  # smallest total N such that the joint (bivariate normal) power >= power
 
   type.se <- match.arg(type.se)
   type.sp <- match.arg(type.sp)
+  variance <- match.arg(variance)
 
+  if (power <= 0 || power >= 1) stop("power must be between 0 and 1.")
+  if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
+  if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
 
-  # the variance function
-  v <- function(c,e){
-    c*(1-c) + e*(1-e)
+  pwr <- function(N) {
+    unpaired_power_opt_bin(N = N, prev = prev, alpha = alpha,
+                           se.c = se.c, se.e = se.e,
+                           sp.c = sp.c, sp.e = sp.e,
+                           delta.se = delta.se, delta.sp = delta.sp,
+                           type.se = type.se, type.sp = type.sp,
+                           rho = rho, variance = variance)$overall_power
   }
 
+  N <- find_n(pwr, power)
+  res <- unpaired_power_opt_bin(N = N, prev = prev, alpha = alpha,
+                                se.c = se.c, se.e = se.e,
+                                sp.c = sp.c, sp.e = sp.e,
+                                delta.se = delta.se, delta.sp = delta.sp,
+                                type.se = type.se, type.sp = type.sp,
+                                rho = rho, variance = variance)
 
-  # ---------- endpoint-level sample size ----------
-  n_endpoint <- function(alpha, beta, c, e, delta, type){
-    z.alpha <- qnorm(1-alpha/2)
-    z.beta <- qnorm(1-beta)
-
-    if(type == "sup"){
-      effect  <- c - e
-      V0 <- v(c,c)
-      VA <- v(c,e)
-      n <- ((z.alpha*sqrt(V0) + z.beta*sqrt(VA))^2) / (effect^2)
-    }
-
-    if(type == "ni"){
-      effect  <- c - e - delta
-      VA <- v(c,e)
-      n <- ((z.alpha + z.beta)^2 * VA) / (effect^2)
-    }
-
-    return(ceiling(n))
-  }
-
-  f <- function(beta.se){
-
-    beta.sp <- (1-beta.se-power)/(1-beta.se)
-
-    if(beta.sp <= 0 || beta.sp >= 1) return(Inf)
-
-    n.se <- n_endpoint(alpha=alpha, beta=beta.se,
-                       c=se.c, e=se.e,
-                       delta=delta.se, type=type.se)
-
-    n.sp <- n_endpoint(alpha=alpha, beta=beta.sp,
-                       c=sp.c, e=sp.e,
-                       delta=delta.sp, type=type.sp)
-
-    N.se <- n.se / prev
-    N.sp <- n.sp / (1-prev)
-
-    return(N.se - N.sp)
-  }
-
-
-
-
-  beta.se <- uniroot(f,
-                     lower = 1e-8,
-                     upper = 1-power-1e-8)$root
-
-  beta.sp <- (1- beta.se-power)/(1-beta.se)
-
-  # ---------- final sample sizes ----------
-  n.se <- n_endpoint(alpha=alpha, beta=beta.se,
-                     c=se.c, e=se.e,
-                     delta=delta.se, type=type.se)
-
-  n.sp <- n_endpoint(alpha=alpha, beta=beta.sp,
-                     c=sp.c, e=sp.e,
-                     delta=delta.sp, type=type.sp)
-
-  N.se <- n.se / prev
-  N.sp <- n.sp / (1-prev)
-
-  N.per.group <- ceiling(max(N.se, N.sp))
-
-  # achieved power check
-  power_endpoint <- function(n, alpha, c, e, delta, type){
-    z.alpha <- qnorm(1-alpha/2)
-
-    if(type == "sup"){
-      effect  <- c - e
-      V0 <- v(c,c)
-      VA <- v(c,e)
-      z <- (sqrt(n)*effect - z.alpha*sqrt(V0)) / sqrt(VA)
-    }
-
-    if(type == "ni"){
-      effect  <- c - e - delta
-      VA <- v(c,e)
-      z <- ((sqrt(n)*(effect)/sqrt(VA))-z.alpha)
-    }
-
-    power <- 1 - pnorm(z)
-
-    return(power)
-  }
-
-  power.se <- power_endpoint(n=N.per.group*prev, alpha=alpha, c=se.c,e=se.e,delta=delta.se,type=type.se)
-
-  power.sp <- power_endpoint(n=N.per.group*(1-prev), alpha=alpha, c=sp.c,e=sp.e,delta=delta.sp,type=type.sp)
-
-  power.total <- power.se * power.sp
-
-  result <- list(
-    alternative="two-sided",
-    alpha = alpha,
-    hypothesis=list(
-      sensitivity = type.se,
-      specificity = type.sp
-    ),
-    design  = "unpaired comparative design",
-    analysis = "samplesize",
-    target_power = power.total,
-    power_se = power.se,
-    power_sp = power.sp,
-    N_se = n.se,
-    N_sp = n.sp,
-    N_tot = N.per.group,
-    prev = prev
-  )
-
-  class(result) <- "dx_bin"
-  return(result)
+  res$analysis <- "samplesize"
+  res$target_power <- power
+  res
 }
-

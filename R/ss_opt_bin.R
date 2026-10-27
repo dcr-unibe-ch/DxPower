@@ -26,27 +26,25 @@
 #' therefore overpower one endpoint while the other determines the
 #' required total sample size.
 #'
-#' This function implements an optimal joint sample size calculation
-#' that balances both endpoints simultaneously. Endpoint-specific powers
-#' are allocated such that:
-#'
-#' \itemize{
-#'   \item the overall power equals the target value,
-#'   \item both endpoints imply the same required total sample size,
-#'   \item neither sensitivity nor specificity is unnecessarily overpowered.
-#' }
-#' Sample size formulas are based on large-sample normal approximations
+#' This function implements a joint sample size calculation that accounts
+#' for both endpoints simultaneously: the required total sample size is the
+#' smallest integer \eqn{N} for which the overall power, as computed by
+#' \code{\link{power_opt_bin}}, reaches the target. Neither sensitivity nor
+#' specificity is treated as the sole driver of the sample size.
+#' Power is based on large-sample normal approximations
 #' for binomial proportions using either:
 #' \itemize{
 #'   \item the Wald approximation on the probability scale, or
 #'   \item the logit-transformed normal approximation.
 #' }
 #'
-#' The endpoint-specific powers are determined numerically by solving
-#' a root-finding problem under the overall power constraint:
+#' Overall power is the bivariate normal probability that both tests reject
+#' (\code{mvtnorm::pmvnorm}), with correlation \code{rho} between the two
+#' test statistics. With the default \code{rho = 0} this equals
 #' \deqn{
 #' Power_{overall} = Power_{Se} \times Power_{Sp}.
 #' }
+#' \eqn{N} is found by bracketing (doubling) and bisection.
 #'
 #' The methodology follows the joint sample size framework for single-arm
 #' confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (2020).
@@ -68,15 +66,20 @@
 #' @param alpha Type I error level.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
+#' @param rho Correlation between the sensitivity and specificity test
+#'   statistics (default 0). Sensitivity and specificity are estimated in
+#'   disjoint subgroups, so 0 is the natural value; non-zero values are
+#'   intended for sensitivity analyses.
 #' @author Ainesh Sewak & Maia Muresan (DCR Bern)
 #' @importFrom stats approx pnorm qnorm spline
+#' @importFrom mvtnorm pmvnorm TVPACK
 #' @return An object of class "dx_bin" containing:
 #' \itemize{
 #'   \item design specifications(design specifications (alpha level, testing framework, CI method)
 #'   \item required total sample size,
 #'   \item subgroup sample sizes,
-#'   \item target overall power
-#'   \item allocated endpoint-specific powers.
+#'   \item target overall power and achieved overall power (\code{overall_power})
+#'   \item achieved endpoint-specific powers.
 #'
 #' }
 #' @export
@@ -122,7 +125,8 @@ ss_opt_bin <- function(power,
                        se.e,se.min,
                        sp.e,sp.min,
                        alpha = 0.025, ci_method=c("wald","logit"),
-                       alternative=c("one.sided","two.sided")) {
+                       alternative=c("one.sided","two.sided"),
+                       rho = 0) {
 
   ci_method <- match.arg(ci_method)
   alternative<-match.arg(alternative)
@@ -130,107 +134,26 @@ ss_opt_bin <- function(power,
   # -----------------------------
   # Input validation
   # -----------------------------
-  if (power <= 0 || power >= 1)stop("pwr must be between 0 and 1.")
+  if (power <= 0 || power >= 1)stop("power must be between 0 and 1.")
   if (prev <= 0 || prev >= 1)stop("Prevalence must be between 0 and 1.")
   if (se.e <= se.min)stop("se.e must be greater than se.min for superiority testing.")
   if (sp.e <= sp.min)stop("sp.e must be greater than sp.min for superiority testing.")
   if (alpha <= 0 || alpha >= 1)stop("alpha must be between 0 and 1.")
 
-  # -----------------------------
-  # Common quantities
-  # -----------------------------
-  #critical value
-  z_alpha <- if (alternative == "one.sided") {
-    qnorm(1 - alpha)
-  } else {
-    qnorm(1 - alpha/2)
+  # smallest total N such that the joint (bivariate normal) power >= power
+  pwr_at <- function(N) {
+    power_opt_bin(N = N, prev = prev,
+                  se.e = se.e, se.min = se.min,
+                  sp.e = sp.e, sp.min = sp.min,
+                  alpha = alpha, ci_method = ci_method,
+                  alternative = alternative, rho = rho)
   }
 
-  logit <- function(p) log(p / (1 - p))
-  # -----------------------------
-  # Define scale-specific quantities
-  # -----------------------------
-  if (ci_method == "wald") {
+  N <- find_n(function(N) pwr_at(N)$overall_power, power)
+  result <- pwr_at(N)
 
-    d_se <- se.e - se.min
-    d_sp <- sp.e - sp.min
-
-    v_se.min <- se.min * (1 - se.min)
-    v_se.e <- se.e * (1 - se.e)
-
-    v_sp.min <- sp.min * (1 - sp.min)
-    v_sp.e <- sp.e * (1 - sp.e)
-
-  } else if (ci_method == "logit") {
-
-    d_se <- logit(se.e) - logit(se.min)
-    d_sp <- logit(sp.e) - logit(sp.min)
-
-    v_se.min <- 1 / (se.min * (1 - se.min))
-    v_se.e <- 1 / (se.e * (1 - se.e))
-
-    v_sp.min <- 1 / (sp.min * (1 - sp.min))
-    v_sp.e <- 1 / (sp.e * (1 - sp.e))
-
-  }
-
-  # Define function for root finding
-  root_fun <- function(power_se) {
-    beta_sp <- (power_se - power) / power_se
-    power_sp  <- 1 - beta_sp
-    qpower_se <- qnorm(power_se)
-    qpower_sp <- qnorm(power_sp)
-    n_se <- (z_alpha * sqrt(v_se.min) +
-               qpower_se * sqrt(v_se.e))^2 /
-      (prev * d_se^2)
-
-    n_sp <- (z_alpha * sqrt(v_sp.min) +
-               qpower_sp * sqrt(v_sp.e))^2 /
-      ((1 - prev) * d_sp^2)
-    return(n_se - n_sp)
-  }
-
-  # Search for root using splines
-  eps <- 1e-6
-  grd <- seq(power + eps , 1 - eps, length.out = 100000)
-  s <- spline(grd, root_fun(grd))
-  power_se <- approx(x = s$y, y = s$x, xout = 0)$y
-  beta_sp <- (power_se - power) / power_se
-  power_sp <- 1 - beta_sp
-
-  # Compute z-scores
-  qpower_se <- qnorm(power_se)
-  qpower_sp <- qnorm(power_sp)
-
-  # Sample sizes without prevalence
-  N_se <- (z_alpha * sqrt(v_se.min) +
-             qpower_se * sqrt(v_se.e))^2 /
-    (d_se^2)
-
-  N_sp <- (z_alpha * sqrt(v_sp.min) +
-             qpower_sp * sqrt(v_sp.e))^2 /
-    (d_sp^2)
-
-  result <- list(
-    alternative=alternative,
-    alpha = alpha,
-    hypothesis=list(
-      sensitivity = "sup",
-      specificity = "sup"
-    ),
-    design  = "single-test design",
-    analysis = "samplesize",
-    ci_method = ci_method,
-    target_power = power,
-    power_se = power_se,
-    power_sp = power_sp,
-    N_se = N_se,
-    N_sp = N_sp,
-    N_tot = N_se + N_sp,
-    prev = prev
-  )
-
-  class(result) <- "dx_bin"
-  return(result)
+  result$analysis <- "samplesize"
+  result$target_power <- power
+  result
 }
 
