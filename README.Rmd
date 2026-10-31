@@ -39,8 +39,12 @@ The methodology is based on asymptotic normal approximations and an intersection
     -   [Test Statistic and Approximation](#test-statistic-and-approximation)
     -   [Overall Power Definition](#overall-power-definition)
 -   [Functions](#functions)
-    -   [`ss_opt_bin()`](#ss_opt_bin)
-    -   [`power_opt_bin()`](#power_opt_bin)
+    -   [Overview](#overview)
+    -   [Sample size calculation](#sample-size)
+    -   [Power calculation](#power-calculation)
+    -   [Comparative designs](#comparative-designs)
+    -   [Conventional sample size](#conventional)
+    -   [Empirical (simulated) power](#empirical)
 -   [Example](#example)
 -   [References](#references)
 
@@ -59,13 +63,13 @@ The current version implements sample size determination and power evaluation fo
 
 -   Binary endpoints (sensitivity and specificity)
 
--   One-sided superiority hypotheses
+-   Single-test designs (superiority against fixed null values) and comparative designs (unpaired and paired, superiority or non-inferiority)
 
 -   Co-primary testing using an intersection--union framework
 
--   Wald-type asymptotic normal approximations
+-   Wald-type (or logit) asymptotic normal approximations, and exact binomial power for the single-test design
 
-Extensions to non-inferiority settings, continuous endpoints, and more general co-primary objectives are planned.
+Extensions to continuous endpoints and more general co-primary objectives are planned.
 
 ## Statistical Framework {#statistical-framework}
 
@@ -137,9 +141,21 @@ Individual endpoint powers are therefore typically larger than the target overal
 
 ## Functions {#functions}
 
-### `ss_opt_bin()` {#ss_opt_bin}
+### Overview {#overview}
 
-Computes the required total sample size for a desired overall power and true prevalence $\pi$ in a confirmatory diagnostic accuracy study with co-primary endpoints.
+| Function | Purpose |
+|------------------------------------|------------------------------------|
+| `power.copr.test()` | Sample size (`power` given) or power (`N` given), single-test design |
+| `power.copr.comp.test()` | Sample size or power, comparative unpaired or paired design |
+| `ss.copr.conv()` | Conventional per-endpoint sample size, single-test design |
+| `power.copr.emp()` | Monte Carlo power, single-test design |
+| `power.copr.comp.emp()` | Monte Carlo power, unpaired comparative design |
+
+All sample size and power functions return an object of class `power.htest`.
+
+### Sample size calculation {#sample-size}
+
+`power.copr.test(power = ...)` computes the required total sample size for a desired overall power and true prevalence $\pi$ in a confirmatory diagnostic accuracy study with co-primary endpoints.
 
 #### Sample Size Formula
 
@@ -213,9 +229,9 @@ This ensures that:
 
 The resulting total sample size is $N_{total} = N_{Se} + N_{Sp}$ with allocation driven by prevalence.
 
-### `power_opt_bin()` {#power_opt_bin}
+### Power calculation {#power-calculation}
 
-Computes the achieved overall power for a fixed total sample size and true prevalence $\pi$ in a confirmatory diagnostic accuracy study with co-primary endpoints.
+`power.copr.test(N = ...)` computes the achieved overall power for a fixed total sample size and true prevalence $\pi$ in a confirmatory diagnostic accuracy study with co-primary endpoints.
 
 #### Endpoint - Specific Power Formula
 
@@ -254,7 +270,24 @@ Power_{overall} = Power_{Se} \times Power_{Sp}
 $$
 
 **Remark**\
-Both functions rely on the same asymptotic normal approximation framework, ensuring mathematical consistency between sample size determination and power evaluation.
+Sample size determination and power evaluation rely on the same asymptotic normal approximation framework, ensuring mathematical consistency. With `exact = TRUE` the power is the exact binomial rejection probability instead. It is a sawtooth function of $N$, so the sample size is found by a scan over integer $N$ and `exact_rule` selects either the smallest $N$ reaching the target (`"first"`) or the smallest $N$ from which the power stays at or above the target (`"stays_above"`).
+
+### Comparative designs {#comparative-designs}
+
+`power.copr.comp.test()` handles studies comparing an experimental test with a comparator, for sensitivity and specificity, with superiority or non-inferiority hypotheses (`type.se`, `type.sp`, margins `delta.se`, `delta.sp`).
+
+-   `design = "unpaired"`: subjects are randomised to one of the two tests. The variance under the null is set by `variance` (`"null"`, `"pooled"` or `"unpooled"`).
+-   `design = "paired"`: all subjects receive both tests. The discordance probabilities `psi.d` and `psi.nd` must be given. Superiority uses the Miettinen formula and non-inferiority the Liu score method.
+
+The significance level `alpha` is one-sided (default 0.025) as for the single-test design. The overall power is again the product of the two endpoint powers.
+
+### Conventional sample size {#conventional}
+
+`ss.copr.conv()` implements the conventional three-step approach of Stark et al. (2022). It calculates the number of diseased subjects needed for the sensitivity and the number of non-diseased subjects needed for the specificity, each with its own endpoint power. These are divided by the prevalence and by one minus the prevalence, and the maximum is taken. The endpoint with the smaller requirement is overpowered, so the overall power is typically above the target.
+
+### Empirical (simulated) power {#empirical}
+
+`power.copr.emp()` and `power.copr.comp.emp()` give vectorised Monte Carlo estimates of the overall power for the single-test and the unpaired comparative design. They are used to check the analytic results and are not interchangeable, because the comparator is estimated in the unpaired design.
 
 ## Example {#example}
 
@@ -262,12 +295,12 @@ Both functions rely on the same asymptotic normal approximation framework, ensur
 
 ```{r }
 
-res <- ss_opt_bin(
-  se1 = 0.85, sp1 = 0.85,
-  se0 = 0.70, sp0 = 0.65,
-  alpha = 0.025,
+res <- power.copr.test(
+  power = 0.80,
   prev = 0.5,
-  pwr = 0.80
+  se.e = 0.85, se.min = 0.70,
+  sp.e = 0.85, sp.min = 0.65,
+  alpha = 0.025
 )
 
 res
@@ -277,14 +310,25 @@ res
 
 ```{r}
 
-pow<-power_opt_bin(
-  N = res$N_tot,
-  se1 = 0.85,sp1 = 0.85, 
-  se0 = 0.70,sp0 = 0.65,
-  alpha = 0.025,
-  prev = 0.5
+pow <- power.copr.test(
+  N = res$n,
+  prev = 0.5,
+  se.e = 0.85, se.min = 0.70,
+  sp.e = 0.85, sp.min = 0.65,
+  alpha = 0.025
 )
 pow
+```
+
+### Comparative Design
+
+```{r}
+power.copr.comp.test(
+  power = 0.80,
+  prev = 0.6,
+  se.c = 0.75, se.e = 0.85,
+  sp.c = 0.65, sp.e = 0.75
+)
 ```
 
 ## References {#references}

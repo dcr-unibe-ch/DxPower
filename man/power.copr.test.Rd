@@ -2,7 +2,7 @@
 % Please edit documentation in R/power.copr.test.R
 \name{power.copr.test}
 \alias{power.copr.test}
-\title{Power and Sample Size for Co-Primary Diagnostic Accuracy Endpoints - Single-test design}
+\title{Power calculations for co-primary diagnostic accuracy endpoints - Single-test design}
 \usage{
 power.copr.test(
   N = NULL,
@@ -15,7 +15,8 @@ power.copr.test(
   alpha = 0.025,
   ci_method = c("wald", "logit"),
   alternative = c("one.sided", "two.sided"),
-  rho = 0
+  exact = FALSE,
+  exact_rule = c("first", "stays_above")
 )
 }
 \arguments{
@@ -39,25 +40,85 @@ power.copr.test(
 
 \item{alternative}{"one.sided" (default) or "two.sided".}
 
-\item{rho}{Correlation between the sensitivity and specificity test
-statistics (default 0), see \code{\link{power_opt_bin}}.}
+\item{exact}{Use the exact binomial power instead of the normal
+approximation, see Details. Default \code{FALSE}.}
+
+\item{exact_rule}{Only for \code{exact = TRUE} and a given \code{power}:
+\code{"first"} (default) or \code{"stays_above"}.}
 }
 \value{
-An object of class \code{"dx_bin"}, see \code{\link{ss_opt_bin}}
-(when \code{power} is given) and \code{\link{power_opt_bin}} (when \code{N}
-is given).
+An object of class \code{"power.htest"}, a list with the elements:
+\describe{
+  \item{n}{Total sample size.}
+  \item{n_dis}{Total number of diseased subjects.}
+  \item{n_nondis}{Total number of non-diseased subjects.}
+  \item{prev}{Disease prevalence.}
+  \item{sig.level}{Type I error level.}
+  \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
+  \item{power}{Overall power.}
+  \item{power_se}{Power for the sensitivity endpoint.}
+  \item{power_sp}{Power for the specificity endpoint.}
+  \item{ci_method}{Normal approximation used.}
+  \item{exact}{Whether exact binomial power was used.}
+  \item{target_power}{Requested power (only when \code{power} was given).}
+  \item{exact_rule}{Rule used (only for \code{exact = TRUE} and a given \code{power}).}
+}
 }
 \description{
 Computes either the required total sample size or the achieved overall power
 of a single-test confirmatory diagnostic accuracy study with co-primary
-endpoints (sensitivity and specificity), in the style of
-\code{\link[stats]{power.t.test}}. Exactly one of \code{N} and \code{power}
-must be \code{NULL}; the one that is \code{NULL} is calculated.
+endpoints (sensitivity and specificity). Exactly one of \code{N} and
+\code{power} must be \code{NULL}. The one that is \code{NULL} is calculated.
 
-Both endpoints are tested for superiority against fixed null values and
-study success requires rejection of both null hypotheses (intersection-union
-test). See \code{\link{ss_opt_bin}} and \code{\link{power_opt_bin}} for the
-methodology.
+Both endpoints are tested for superiority against fixed null values.
+Study success requires rejection of both null hypotheses. Overall power is
+therefore defined under an intersection-union testing (IUT) framework. Under
+this framework the global type I error rate is controlled at level
+\eqn{\alpha} without multiplicity adjustment.
+
+The calculation explicitly accounts for the assumed disease prevalence, which
+determines the expected number of diseased and non-diseased subjects.
+}
+\details{
+Let \eqn{\pi} denote the assumed disease prevalence. The study population
+is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
+(\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
+
+Endpoint-specific powers are based on large-sample normal approximations for
+binomial proportions, using either:
+\itemize{
+  \item the Wald approximation on the probability scale, or
+  \item the logit-transformed normal approximation.
+}
+
+Overall power is the probability that both tests reject. Because the
+endpoints are independent, this equals
+\deqn{
+Power_{overall} = Power_{Se} \times Power_{Sp}.
+}
+
+When prevalence is very low or very high, one subgroup may require
+substantially more subjects than the other. A naive calculation (taking the
+maximum of two independently calculated sample sizes) may therefore overpower
+one endpoint. When \code{power} is given, the required total sample size is
+instead the smallest integer \eqn{N} for which the overall power reaches the
+target. It is found by bracketing (doubling) and bisection.
+
+With \code{exact = TRUE} the power is the exact binomial probability that
+both tests reject. It is not monotone in \eqn{N} (it is a sawtooth), so the
+bisection is replaced by a vectorised scan over integer \eqn{N} in a window
+around the asymptotic solution (0.5 to 1.5 times, extended automatically if
+needed). Subgroup sizes are \code{round(N * prev)} and the remainder, and
+\code{N} must be an integer. \code{exact_rule} selects the sample size:
+\itemize{
+  \item \code{"first"}: the smallest \eqn{N} reaching the target power.
+    The power may fall below the target again for slightly larger \eqn{N}.
+  \item \code{"stays_above"}: the smallest \eqn{N} from which the power
+    stays at or above the target for all larger \eqn{N}.
+}
+
+The methodology follows the joint sample size framework for single-arm
+confirmatory diagnostic accuracy studies of Stark and Zapf (2020).
 }
 \examples{
 # Sample size for 80\% power
@@ -71,8 +132,11 @@ power.copr.test(N = 122, prev = 0.5,
                 sp.e = 0.85, sp.min = 0.55,
                 ci_method = "logit")
 }
-\seealso{
-\code{\link{ss_opt_bin}}, \code{\link{power_opt_bin}}
+\references{
+Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
+based on the prevalence in a single-arm confirmatory diagnostic accuracy
+study. \emph{Statistical Methods in Medical Research}, 29(10), 2958–2971.
+\doi{10.1177/0962280220913588}
 }
 \author{
 Ainesh Sewak & Maia Muresan (DCR Bern)

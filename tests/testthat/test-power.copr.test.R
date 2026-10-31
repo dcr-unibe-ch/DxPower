@@ -5,21 +5,21 @@ test_that("power given: matches ss_opt_bin()", {
   a <- do.call(power.copr.test, c(list(power = 0.8), args))
   b <- do.call(ss_opt_bin, c(list(power = 0.8), args))
   expect_equal(a, b)
-  expect_equal(a$analysis, "samplesize")
+  expect_equal(a$target_power, 0.8)
 })
 
 test_that("N given: matches power_opt_bin()", {
   a <- do.call(power.copr.test, c(list(N = 122, ci_method = "logit"), args))
   b <- do.call(power_opt_bin, c(list(N = 122, ci_method = "logit"), args))
   expect_equal(a, b)
-  expect_equal(a$analysis, "power")
+  expect_null(a$target_power)
 })
 
 test_that("round trip: power at the computed N is about the target", {
   ss <- do.call(power.copr.test, c(list(power = 0.8), args))
-  pw <- do.call(power.copr.test, c(list(N = ceiling(ss$N_tot)), args))
-  expect_gte(pw$overall_power, 0.8 - 1e-3)
-  expect_lt(pw$overall_power, 0.85)
+  pw <- do.call(power.copr.test, c(list(N = ceiling(ss$n)), args))
+  expect_gte(pw$power, 0.8 - 1e-3)
+  expect_lt(pw$power, 0.85)
 })
 
 test_that("exactly one of N and power must be NULL", {

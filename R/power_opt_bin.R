@@ -1,5 +1,4 @@
-#' Power calculation for Single-test
-#' Diagnostic Accuracy Study with Co-Primary Endpoints
+#' Power calculation for a single-test diagnostic accuracy study with co-primary endpoints
 #'
 #' @description
 #' The function determines the achieved overall power for a confirmatory diagnostic
@@ -34,9 +33,7 @@
 #' sensitivity and specificity are asymptotically independent.
 #'
 #' Overall power is the probability that both test statistics exceed their
-#' critical values, computed as a bivariate normal probability
-#' (\code{mvtnorm::pmvnorm}, TVPACK) with correlation \code{rho}. With the
-#' default \code{rho = 0} this equals
+#' critical values. Because the endpoints are independent, this is
 #'
 #' \deqn{
 #' Power_{overall} = Power_{Se} \times Power_{Sp}.
@@ -44,15 +41,13 @@
 #'
 #' The function returns the achieved endpoint-specific powers and
 #' their joint probability for the specified total sample size.
-#' @seealso \code{\link{ss_opt_bin}}
+#' The power calculation is consistent with the asymptotic normal framework
+#' underlying the sample size methodology of Stark and Zapf (2020).
 #' @references
 #' Stark, M., & Zapf, A. (2020). Sample size calculation and re-estimation
 #' based on the prevalence in a single-arm confirmatory diagnostic accuracy
-#' study. *Statistical Methods in Medical Research*, 29(10), 2958–2971.
+#' study. \emph{Statistical Methods in Medical Research}, 29(10), 2958–2971.
 #' \doi{10.1177/0962280220913588}
-#' The power calculation implemented in this function is consistent with
-#' the asymptotic normal framework underlying the sample size methodology
-#' described in the above reference.
 #'
 #' @param N Total sample size.
 #' @param prev Disease prevalence (0 < prev < 1).
@@ -63,23 +58,30 @@
 #' @param alpha Type I error level.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
-#' @param rho Correlation between the sensitivity and specificity test
-#'   statistics (default 0). Sensitivity and specificity are estimated in
-#'   disjoint subgroups, so 0 is the natural value; non-zero values are
-#'   intended for sensitivity analyses.
+#' @param exact If \code{TRUE}, the endpoint powers are the exact binomial
+#'   rejection probabilities of the Wald/logit tests instead of the normal
+#'   approximation. \code{N} must then be an integer, split into
+#'   \code{round(N * prev)} diseased and the remaining non-diseased
+#'   individuals. Default \code{FALSE}.
 #' @author Maia Muresan (DCR Bern)
 #'
-#' @importFrom stats approx pnorm qnorm spline
-#' @importFrom mvtnorm pmvnorm TVPACK
-#' @return An object of class `"dx_bin"` containing:
-#' \itemize{
-#'   \item design specifications (design specifications (alpha level, testing framework, CI method)
-#'   \item achieved overall power,
-#'   \item endpoint-specific powers,
-#'   \item subgroup sample sizes.
+#' @importFrom stats approx pnorm qnorm spline pbinom plogis qlogis
+#' @return An object of class \code{"power.htest"}, a list with the elements:
+#' \describe{
+#'   \item{n}{Total sample size.}
+#'   \item{n_dis}{Total number of diseased subjects.}
+#'   \item{n_nondis}{Total number of non-diseased subjects.}
+#'   \item{prev}{Disease prevalence.}
+#'   \item{sig.level}{Type I error level.}
+#'   \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
+#'   \item{power}{Overall power.}
+#'   \item{power_se}{Power for the sensitivity endpoint.}
+#'   \item{power_sp}{Power for the specificity endpoint.}
+#'   \item{ci_method}{Normal approximation used.}
+#'   \item{exact}{Whether exact binomial power was used.}
 #' }
 #'
-#' @export
+#' @noRd
 #' @examples
 #'
 #' # Example 1: Achieved power for a fixed sample size
@@ -102,7 +104,7 @@
 #'   se.min = 0.65,      # minimum acceptable sensitivity
 #'   sp.e = 0.85,        # expected specificity
 #'   sp.min = 0.55,      # minimum acceptable specificity
-#'   alpha = 0.025,      # one-sided significance level (default)#'   ci_method = "wald"  # default
+#'   alpha = 0.025,      # one-sided significance level (default)
 #'
 #' )
 #'
@@ -125,7 +127,7 @@ power_opt_bin <- function(N,
                           sp.e, sp.min,
                           alpha = 0.025, ci_method=c("wald", "logit"),
                           alternative=c("one.sided","two.sided"),
-                          rho = 0
+                          exact = FALSE
 ) {
 
   ci_method   <- match.arg(ci_method)
@@ -133,12 +135,13 @@ power_opt_bin <- function(N,
   # -----------------------------
   # Input validation
   # -----------------------------
-  if (rho <= -1 || rho >= 1) stop("rho must be strictly between -1 and 1.")
   if (N <= 0) stop("N must be positive.")
   if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
   if (se.e <= se.min) stop("se.e must be greater than se.min.")
   if (sp.e <= sp.min) stop("sp.e must be greater than sp.min.")
   if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
+  if (exact && abs(N - round(N)) > 1e-8)
+    stop("N must be an integer when exact = TRUE.")
 
   # -----------------------------
   # Common quantities
@@ -150,90 +153,57 @@ power_opt_bin <- function(N,
     qnorm(1 - alpha/2)
   }
 
-  #sample sizes per subgroup
-  Nd <- N * prev           # number of diseased
-  Nh <- N * (1 - prev)     # number of non-diseased
+  if (exact) {
+    # exact binomial power with integer subgroup sizes
+    ex <- exact_power_bin(round(N), prev, se.e, se.min, sp.e, sp.min,
+                          z_alpha, ci_method)
+    Nd <- ex$n_dis
+    Nh <- ex$n_nondis
+    power_se <- ex$power_se
+    power_sp <- ex$power_sp
+  } else {
+    #sample sizes per subgroup
+    Nd <- N * prev           # number of diseased
+    Nh <- N * (1 - prev)     # number of non-diseased
 
-  logit <- function(p) log(p / (1 - p))
+    # -----------------------------
+    # Scale-specific quantities (probability or logit scale)
+    # -----------------------------
+    sc_se <- endpoint_scale(se.e, se.min, ci_method)
+    sc_sp <- endpoint_scale(sp.e, sp.min, ci_method)
+    d_se <- sc_se$d;  v_se.min <- sc_se$v_min;  v_se.e <- sc_se$v_e
+    d_sp <- sc_sp$d;  v_sp.min <- sc_sp$v_min;  v_sp.e <- sc_sp$v_e
 
+    # -----------------------------
+    # Endpoint-specific power
+    # -----------------------------
+    #Sensitivity power
+    z_beta_se <- (sqrt(Nd) * d_se - z_alpha * sqrt(v_se.min)) / sqrt(v_se.e)
+    power_se <- pnorm(z_beta_se)
 
-  # -----------------------------
-  # Define scale-specific quantities
-  # -----------------------------
-  if (ci_method == "wald") {
-
-    d_se <- se.e - se.min
-    d_sp <- sp.e - sp.min
-
-    v_se.min <- se.min * (1 - se.min)
-    v_se.e <- se.e * (1 - se.e)
-
-    v_sp.min <- sp.min * (1 - sp.min)
-    v_sp.e <- sp.e * (1 - sp.e)
-
-
-  } else if (ci_method == "logit") {
-
-    d_se <- logit(se.e) - logit(se.min)
-    d_sp <- logit(sp.e) - logit(sp.min)
-
-    v_se.min <- 1 / (se.min * (1 - se.min))
-    v_se.e <- 1 / (se.e * (1 - se.e))
-
-    v_sp.min <- 1 / (sp.min * (1 - sp.min))
-    v_sp.e <- 1 / (sp.e * (1 - sp.e))
+    # Specificity power
+    z_beta_sp <- (sqrt(Nh) * d_sp - z_alpha * sqrt(v_sp.min)) / sqrt(v_sp.e)
+    power_sp <- pnorm(z_beta_sp)
   }
-
-  # -----------------------------
-  # Endpoint-specific power
-  # -----------------------------
-  #Sensitivity power
-  z_beta_se <- (sqrt(Nd) * d_se - z_alpha * sqrt(v_se.min)) / sqrt(v_se.e)
-  power_se <- pnorm(z_beta_se)
-
-  # Specificity power
-  z_beta_sp <- (sqrt(Nh) * d_sp - z_alpha * sqrt(v_sp.min)) / sqrt(v_sp.e)
-  power_sp <- pnorm(z_beta_sp)
 
   # -----------------------------
   # Overall power (IUT framework)
   # -----------------------------
-  # P(both tests reject) = P(Z_se < z_beta_se, Z_sp < z_beta_sp) for standard
-  # normal Z with correlation rho (rho = 0 gives power_se * power_sp)
-  R <- matrix(c(1, rho, rho, 1), 2)
-  overall_power <- as.numeric(
-    mvtnorm::pmvnorm(lower = c(-Inf, -Inf),
-                     upper = c(z_beta_se, z_beta_sp),
-                     corr  = R,
-                     algorithm = mvtnorm::TVPACK())
-  )
+  # sensitivity and specificity come from disjoint samples (independent)
+  overall_power <- power_se * power_sp
 
 
   # -----------------------------
   # Return structured object
   # -----------------------------
-  result <- list(
-    alternative=alternative,
-    alpha = alpha,
-    hypothesis=list(
-      sensitivity = "sup",
-      specificity = "sup"
-    ),
-    design  = "single-test design",
-    analysis = "power",
-    ci_method = ci_method,
-    overall_power = overall_power,
-    power_se = power_se,
-    power_sp = power_sp,
-    rho = rho,
-    N_se = Nd,
-    N_sp = Nh,
-    N_tot = N,
-    prev = prev
+  power_htest(
+    method = power_method("Single-test design",
+                          single_approx(ci_method, exact), "power"),
+    n = N, n_dis = Nd, n_nondis = Nh, prev = prev,
+    sig.level = alpha, alternative = alternative,
+    power = overall_power, power_se = power_se, power_sp = power_sp,
+    ci_method = ci_method, exact = exact
   )
-
-  class(result) <- "dx_bin"
-  return(result)
 }
 
 

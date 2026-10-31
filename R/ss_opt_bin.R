@@ -1,4 +1,4 @@
-#' Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints - Single-test design
+#' Optimal sample size calculation for co-primary diagnostic accuracy endpoints - Single-test design
 #'
 #' @description
 #' The function determines the minimal total sample size required to achieve
@@ -29,7 +29,7 @@
 #' This function implements a joint sample size calculation that accounts
 #' for both endpoints simultaneously: the required total sample size is the
 #' smallest integer \eqn{N} for which the overall power, as computed by
-#' \code{\link{power_opt_bin}}, reaches the target. Neither sensitivity nor
+#' \code{power_opt_bin()}, reaches the target. Neither sensitivity nor
 #' specificity is treated as the sole driver of the sample size.
 #' Power is based on large-sample normal approximations
 #' for binomial proportions using either:
@@ -38,13 +38,25 @@
 #'   \item the logit-transformed normal approximation.
 #' }
 #'
-#' Overall power is the bivariate normal probability that both tests reject
-#' (\code{mvtnorm::pmvnorm}), with correlation \code{rho} between the two
-#' test statistics. With the default \code{rho = 0} this equals
+#' Overall power is the probability that both tests reject. Because the
+#' endpoints are independent, this equals
 #' \deqn{
 #' Power_{overall} = Power_{Se} \times Power_{Sp}.
 #' }
 #' \eqn{N} is found by bracketing (doubling) and bisection.
+#'
+#' With \code{exact = TRUE} the power is the exact binomial probability that
+#' both tests reject. It is not monotone in \eqn{N} (it is a sawtooth), so the
+#' bisection is replaced by a vectorised scan over integer \eqn{N} in a window
+#' around the asymptotic solution (0.5 to 1.5 times, extended
+#' automatically if needed). Subgroup sizes are \code{round(N * prev)} and the
+#' remainder. \code{exact_rule} selects the sample size:
+#' \itemize{
+#'   \item \code{"first"}: the smallest \eqn{N} reaching the target power.
+#'     The power may fall below the target again for slightly larger \eqn{N}.
+#'   \item \code{"stays_above"}: the smallest \eqn{N} from which the power
+#'     stays at or above the target for all larger \eqn{N}.
+#' }
 #'
 #' The methodology follows the joint sample size framework for single-arm
 #' confirmatory diagnostic accuracy studies described in Stark, M., & Zapf, A. (2020).
@@ -64,25 +76,31 @@
 #' @param sp.e Specificity under alternative hypothesis
 #' @param sp.min Specificity under null hypothesis
 #' @param alpha Type I error level.
+#' @param exact If \code{TRUE}, use the exact binomial power instead of the
+#'   normal approximation (see Details). Default \code{FALSE}.
+#' @param exact_rule Only for \code{exact = TRUE}: \code{"first"} (default) or
+#'   \code{"stays_above"}, see Details.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
-#' @param rho Correlation between the sensitivity and specificity test
-#'   statistics (default 0). Sensitivity and specificity are estimated in
-#'   disjoint subgroups, so 0 is the natural value; non-zero values are
-#'   intended for sensitivity analyses.
 #' @author Ainesh Sewak & Maia Muresan (DCR Bern)
 #' @importFrom stats approx pnorm qnorm spline
-#' @importFrom mvtnorm pmvnorm TVPACK
-#' @return An object of class "dx_bin" containing:
-#' \itemize{
-#'   \item design specifications(design specifications (alpha level, testing framework, CI method)
-#'   \item required total sample size,
-#'   \item subgroup sample sizes,
-#'   \item target overall power and achieved overall power (\code{overall_power})
-#'   \item achieved endpoint-specific powers.
-#'
+#' @return An object of class \code{"power.htest"}, a list with the elements:
+#' \describe{
+#'   \item{n}{Total sample size.}
+#'   \item{n_dis}{Total number of diseased subjects.}
+#'   \item{n_nondis}{Total number of non-diseased subjects.}
+#'   \item{prev}{Disease prevalence.}
+#'   \item{sig.level}{Type I error level.}
+#'   \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
+#'   \item{power}{Overall power.}
+#'   \item{power_se}{Power for the sensitivity endpoint.}
+#'   \item{power_sp}{Power for the specificity endpoint.}
+#'   \item{ci_method}{Normal approximation used.}
+#'   \item{exact}{Whether exact binomial power was used.}
+#'   \item{target_power}{Requested power (only when \code{power} was given).}
+#'   \item{exact_rule}{Rule used (only for \code{exact = TRUE} and a given \code{power}).}
 #' }
-#' @export
+#' @noRd
 #' @examples
 #' # Example 1: Sample size calculation for a single diagnostic test
 #' # Objective: demonstrate that sensitivity and specificity exceed
@@ -126,10 +144,12 @@ ss_opt_bin <- function(power,
                        sp.e,sp.min,
                        alpha = 0.025, ci_method=c("wald","logit"),
                        alternative=c("one.sided","two.sided"),
-                       rho = 0) {
+                       exact = FALSE,
+                       exact_rule = c("first", "stays_above")) {
 
   ci_method <- match.arg(ci_method)
   alternative<-match.arg(alternative)
+  exact_rule <- match.arg(exact_rule)
 
   # -----------------------------
   # Input validation
@@ -140,20 +160,32 @@ ss_opt_bin <- function(power,
   if (sp.e <= sp.min)stop("sp.e must be greater than sp.min for superiority testing.")
   if (alpha <= 0 || alpha >= 1)stop("alpha must be between 0 and 1.")
 
-  # smallest total N such that the joint (bivariate normal) power >= power
-  pwr_at <- function(N) {
+  # smallest total N such that the joint power >= power
+  pwr_at <- function(N, exact = FALSE) {
     power_opt_bin(N = N, prev = prev,
                   se.e = se.e, se.min = se.min,
                   sp.e = sp.e, sp.min = sp.min,
                   alpha = alpha, ci_method = ci_method,
-                  alternative = alternative, rho = rho)
+                  alternative = alternative, exact = exact)
   }
 
-  N <- find_n(function(N) pwr_at(N)$overall_power, power)
-  result <- pwr_at(N)
+  N <- find_n(function(N) pwr_at(N)$power, power)
 
-  result$analysis <- "samplesize"
+  if (exact) {
+    z_alpha <- qnorm(1 - if (alternative == "one.sided") alpha else alpha / 2)
+    exact_pw <- function(N) {
+      ex <- exact_power_bin(N, prev, se.e, se.min, sp.e, sp.min,
+                            z_alpha, ci_method)
+      ex$power_se * ex$power_sp
+    }
+    N <- exact_n(exact_pw, power, N_asym = N, rule = exact_rule)
+  }
+  result <- pwr_at(N, exact = exact)
+
+  result$method <- power_method("Single-test design",
+                                single_approx(ci_method, exact), "samplesize")
   result$target_power <- power
+  if (exact) result$exact_rule <- exact_rule
   result
 }
 
