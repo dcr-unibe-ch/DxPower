@@ -173,7 +173,11 @@ test_that("paired: sample size reaches the target power", {
   }
   res <- do.call(power.copr.comp.test, c(pa, list(power = 0.8)))
   back <- do.call(power.copr.comp.test, c(pa, list(N = res$n)))
-  expect_equal(back$power, 0.80, tolerance = 1e-3)
+  expect_equal(res$n, round(res$n))
+  expect_gte(back$power, 0.80)
+  expect_lt(back$power, 0.81)
+  # n is the smallest integer reaching the target
+  expect_lt(do.call(power.copr.comp.test, c(pa, list(N = res$n - 1)))$power, 0.80)
 })
 
 test_that("paired: NI and its margin change the required sample size", {
@@ -182,4 +186,98 @@ test_that("paired: NI and its margin change the required sample size", {
                                 list(power = 0.8), list(...)))$n
   expect_false(identical(ss(), ss(delta.sp = 0.05, type.sp = "ni")))
   expect_gt(ss(delta.sp = 0.02, type.sp = "ni"), ss(delta.sp = 0.10, type.sp = "ni"))
+})
+
+# -- alternative --------------------------------------------------------------
+
+test_that("two-sided is one-sided at alpha / 2 (both designs)", {
+  for (d in list(un, pa)) {
+    two <- do.call(power.copr.comp.test,
+                   c(modifyList(d, list(alpha = 0.05)),
+                     list(N = 200, alternative = "two.sided")))
+    one <- do.call(power.copr.comp.test, c(d, list(N = 200)))
+    expect_equal(two$power, one$power)
+    expect_equal(two$alternative, "two.sided")
+    expect_equal(two$sig.level, 0.05)
+    expect_equal(one$alternative, "one.sided")
+  }
+  n2 <- do.call(power.copr.comp.test, c(un, list(power = 0.8, alternative = "two.sided")))$n
+  n1 <- do.call(power.copr.comp.test, c(un, list(power = 0.8)))$n
+  expect_gt(n2, n1)
+})
+
+# -- exact unpaired -----------------------------------------------------------
+
+test_that("exact unpaired: power matches the empirical power", {
+  skip_on_cran()
+  set.seed(11)
+  B <- 1e5
+  for (v in c("unpooled", "pooled")) {
+    ex <- do.call(power.copr.comp.test, c(un, list(N = 200, exact = TRUE, variance = v)))
+    em <- power.copr.comp.emp(ex$n_dis, ex$n_nondis, un$se.c, un$se.e,
+                              un$sp.c, un$sp.e, alpha = un$alpha,
+                              variance = v, n_sim = B)
+    mc <- function(p) 4 * sqrt(p * (1 - p) / B)
+    expect_lt(abs(em[["overall"]] - ex$power), mc(ex$power))
+    expect_lt(abs(em[["se"]] - ex$power_se), mc(ex$power_se))
+    expect_lt(abs(em[["sp"]] - ex$power_sp), mc(ex$power_sp))
+  }
+})
+
+test_that("exact unpaired: structure, subgroups and NI", {
+  ex <- do.call(power.copr.comp.test,
+                c(un, list(N = 201, exact = TRUE, delta.sp = 0.05, type.sp = "ni")))
+  expect_equal(ex$n_dis, round(201 * un$prev))
+  expect_equal(ex$n_dis + ex$n_nondis, 201)
+  expect_equal(ex$power, ex$power_se * ex$power_sp)
+  expect_match(ex$method, "Exact binomial")
+  expect_true(ex$exact)
+  expect_equal(ex$variance, "unpooled")
+})
+
+test_that("exact unpaired: sample size rules", {
+  first <- do.call(power.copr.comp.test, c(un, list(power = 0.8, exact = TRUE)))
+  stays <- do.call(power.copr.comp.test,
+                   c(un, list(power = 0.8, exact = TRUE, exact_rule = "stays_above")))
+  pw <- function(N) do.call(power.copr.comp.test, c(un, list(N = N, exact = TRUE)))$power
+  expect_gte(first$power, 0.8)
+  expect_lt(pw(first$n - 1), 0.8)
+  expect_gte(stays$n, first$n)
+  expect_true(all(vapply(stays$n:(stays$n + 40), pw, numeric(1)) >= 0.8))
+  expect_lt(pw(stays$n - 1), 0.8)
+  expect_equal(first$exact_rule, "first")
+})
+
+test_that("exact unpaired: argument checks", {
+  expect_error(do.call(power.copr.comp.test, c(un, list(N = 100.5, exact = TRUE))),
+               "integer")
+  expect_error(do.call(power.copr.comp.test,
+                       c(un, list(N = 100, exact = TRUE, variance = "null"))),
+               "pooled")
+  expect_error(do.call(power.copr.comp.test, c(pa, list(N = 100, exact = TRUE))),
+               "unpaired")
+})
+
+# -- input validation ---------------------------------------------------------
+
+test_that("input validation is consistent across functions", {
+  a <- list(prev = 0.5, se.e = 0.85, se.min = 0.65, sp.e = 0.85, sp.min = 0.55)
+  bad <- function(f, ..., msg) expect_error(do.call(f, modifyList(a, list(...))), msg)
+  for (f in list(power.copr.test, ss.copr.conv)) {
+    bad(f, power = 0.8, prev = 1.2, msg = "prev must be")
+    bad(f, power = 0.8, alpha = 0, msg = "alpha must be")
+  }
+  bad(power.copr.test, N = -5, msg = "N must be")
+  bad(power.copr.test, N = c(100, 200), msg = "N must be")
+  bad(power.copr.test, N = 100, se.e = 1.1, msg = "se.e must be")
+  bad(ss.copr.conv, power = 1, msg = "power must be")
+  bad(power.copr.test, N = 100, se.e = 0.5, msg = "se.e must be greater")
+  c2 <- c(un, list(N = 100))
+  for (nm in c("prev", "alpha", "se.c", "sp.e")) {
+    expect_error(do.call(power.copr.comp.test, modifyList(c2, setNames(list(1.5), nm))),
+                 paste0(nm, " must be"))
+  }
+  expect_error(do.call(power.copr.comp.test, modifyList(c2, list(N = 0))), "N must be")
+  expect_error(do.call(power.copr.comp.test, modifyList(c2, list(N = NULL, power = 1))),
+               "power must be")
 })

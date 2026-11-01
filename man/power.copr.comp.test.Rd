@@ -20,7 +20,10 @@ power.copr.comp.test(
   delta.sp = 0,
   type.se = c("sup", "ni"),
   type.sp = c("sup", "ni"),
-  variance = c("null", "pooled", "unpooled")
+  variance = c("null", "pooled", "unpooled"),
+  alternative = c("one.sided", "two.sided"),
+  exact = FALSE,
+  exact_rule = c("first", "stays_above")
 )
 }
 \arguments{
@@ -40,7 +43,9 @@ power.copr.comp.test(
 
 \item{sp.e}{Specificity of the experimental test.}
 
-\item{alpha}{One-sided type I error rate per endpoint (default 0.025).}
+\item{alpha}{Type I error level per endpoint (default 0.025). It is the
+one-sided level unless \code{alternative = "two.sided"}, in which case
+the critical value uses \code{alpha / 2}.}
 
 \item{psi.d}{Discordance probability in the diseased. Required (and only
 used) for \code{design = "paired"}.}
@@ -66,6 +71,20 @@ difference estimator under the null used for the critical value:
 superiority, alternative variance for non-inferiority), \code{"pooled"}
 (pooled proportion \eqn{(c+e)/2}) or \code{"unpooled"} (alternative
 variance). The alternative variance is always unpooled.}
+
+\item{alternative}{\code{"one.sided"} (default) or \code{"two.sided"}.}
+
+\item{exact}{Only for \code{design = "unpaired"}: use the exact binomial
+power of the Wald test (estimated variance, \code{variance = "unpooled"}
+by default or \code{"pooled"}) instead of the normal approximation. \code{N}
+must then be an integer, split into \code{round(N * prev)} diseased and
+the remaining non-diseased subjects \emph{per arm}. See Details. Default
+\code{FALSE}.}
+
+\item{exact_rule}{Only for \code{exact = TRUE} and a given \code{power}:
+\code{"first"} (default, smallest \eqn{N} reaching the target) or
+\code{"stays_above"} (smallest \eqn{N} from which the power stays at or
+above the target).}
 }
 \value{
 An object of class \code{"power.htest"}, a list with the elements:
@@ -75,13 +94,16 @@ An object of class \code{"power.htest"}, a list with the elements:
   \item{n_nondis}{Total number of non-diseased subjects.}
   \item{prev}{Disease prevalence.}
   \item{sig.level}{Type I error level.}
-  \item{alternative}{\code{"one.sided"}.}
+  \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
   \item{power}{Overall power.}
   \item{power_se}{Power for the sensitivity endpoint.}
   \item{power_sp}{Power for the specificity endpoint.}
   \item{type.se}{Hypothesis type for sensitivity.}
   \item{type.sp}{Hypothesis type for specificity.}
+  \item{variance}{Variance used (unpaired design only).}
+  \item{exact}{Whether exact binomial power was used (unpaired design only).}
   \item{target_power}{Requested power (only when \code{power} was given).}
+  \item{exact_rule}{Rule used (only for \code{exact = TRUE} and a given \code{power}).}
 }
 }
 \description{
@@ -122,10 +144,18 @@ power reaches the target.
 \strong{Paired design.} Superiority uses the asymptotic formula of
 Stark et al. (2022, Miettinen). Non-inferiority uses the Liu score method.
 Both depend on the discordance \eqn{\psi}, which must satisfy
-\eqn{|d| \le \psi \le c + e - 2ce}. The sample size splits the allowed type
-II error between the endpoints numerically such that both endpoints imply
-the same total sample size and the overall power equals the target. The
-returned \code{n} is not rounded.
+\eqn{|d| \le \psi \le c + e - 2ce}. As for the unpaired design, the sample
+size is the smallest integer \eqn{N} whose overall power reaches the target.
+
+\strong{Exact power (unpaired design).} With \code{exact = TRUE} the power
+is the exact probability, over two independent binomial counts per
+endpoint, that the Wald statistic with estimated variance exceeds the
+critical value (the same test as in \code{\link{power.copr.comp.emp}}).
+The \code{"null"} variance has no exact counterpart, so \code{"unpooled"}
+is used unless \code{variance = "pooled"} is given. The exact power is not
+monotone in \eqn{N}, so the sample size is found by a scan around the
+asymptotic solution (see \code{exact_rule} and \code{\link{power.copr.test}}).
+The sums neglect binomial tail probabilities below \eqn{10^{-12}}.
 }
 \examples{
 # Unpaired design: sample size, then power at that sample size
@@ -133,6 +163,11 @@ power.copr.comp.test(power = 0.80, prev = 0.6,
                      se.c = 0.75, se.e = 0.85,
                      sp.c = 0.65, sp.e = 0.75)
 power.copr.comp.test(N = 910, prev = 0.6,
+                     se.c = 0.75, se.e = 0.85,
+                     sp.c = 0.65, sp.e = 0.75)
+
+# Unpaired, exact binomial power at an integer N
+power.copr.comp.test(N = 300, prev = 0.6, exact = TRUE,
                      se.c = 0.75, se.e = 0.85,
                      sp.c = 0.65, sp.e = 0.75)
 

@@ -75,15 +75,12 @@ ss.copr.conv <- function(power,
   ci_method   <- match.arg(ci_method)
   alternative <- match.arg(alternative)
 
-  if (power <= 0 || power >= 1) stop("power must be between 0 and 1.")
+  check_inputs(power = power, prev = prev, alpha = alpha)
+  check_single(se.e, se.min, sp.e, sp.min)
   if (power_endpoint < power || power_endpoint >= 1)
     stop("power_endpoint must be in [power, 1).")
-  if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
-  if (se.e <= se.min) stop("se.e must be greater than se.min for superiority testing.")
-  if (sp.e <= sp.min) stop("sp.e must be greater than sp.min for superiority testing.")
-  if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
 
-  z_alpha <- qnorm(1 - if (alternative == "one.sided") alpha else alpha / 2)
+  z_alpha <- z_critical(alpha, alternative)
   z_beta  <- qnorm(power_endpoint)
 
   # step 1: diseased / non-diseased needed for each endpoint

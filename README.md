@@ -63,7 +63,7 @@ evaluation for confirmatory diagnostic accuracy studies with:
 - Co-primary testing using an intersection–union framework
 
 - Wald-type (or logit) asymptotic normal approximations, and exact
-  binomial power for the single-test design
+  binomial power for the single-test and the unpaired comparative design
 
 Extensions to continuous endpoints and more general co-primary
 objectives are planned.

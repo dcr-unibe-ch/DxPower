@@ -17,6 +17,7 @@ power.copr.comp.emp(
   type.se = c("sup", "ni"),
   type.sp = c("sup", "ni"),
   variance = c("unpooled", "pooled"),
+  alternative = c("one.sided", "two.sided"),
   n_sim = 10000
 )
 }
@@ -32,7 +33,9 @@ power.copr.comp.emp(
 
 \item{sp.e}{Specificity of the experimental test.}
 
-\item{alpha}{One-sided type I error rate per endpoint (default 0.025).}
+\item{alpha}{Type I error level per endpoint (default 0.025). It is the
+one-sided level unless \code{alternative = "two.sided"}, in which case
+the critical value uses \code{alpha / 2}.}
 
 \item{delta.se}{Non-inferiority margin for sensitivity
 (used only if \code{type.se = "ni"}).}
@@ -50,6 +53,8 @@ power.copr.comp.emp(
 (default) or \code{"pooled"}. (The \code{"null"} option of
 \code{\link{power.copr.comp.test}} uses the true comparator variance
 and has no empirical counterpart.)}
+
+\item{alternative}{\code{"one.sided"} (default) or \code{"two.sided"}.}
 
 \item{n_sim}{Number of simulation replications.}
 }

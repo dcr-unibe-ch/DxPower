@@ -154,11 +154,8 @@ ss_opt_bin <- function(power,
   # -----------------------------
   # Input validation
   # -----------------------------
-  if (power <= 0 || power >= 1)stop("power must be between 0 and 1.")
-  if (prev <= 0 || prev >= 1)stop("Prevalence must be between 0 and 1.")
-  if (se.e <= se.min)stop("se.e must be greater than se.min for superiority testing.")
-  if (sp.e <= sp.min)stop("sp.e must be greater than sp.min for superiority testing.")
-  if (alpha <= 0 || alpha >= 1)stop("alpha must be between 0 and 1.")
+  check_inputs(power = power, prev = prev, alpha = alpha)
+  check_single(se.e, se.min, sp.e, sp.min)
 
   # smallest total N such that the joint power >= power
   pwr_at <- function(N, exact = FALSE) {
@@ -172,7 +169,7 @@ ss_opt_bin <- function(power,
   N <- find_n(function(N) pwr_at(N)$power, power)
 
   if (exact) {
-    z_alpha <- qnorm(1 - if (alternative == "one.sided") alpha else alpha / 2)
+    z_alpha <- z_critical(alpha, alternative)
     exact_pw <- function(N) {
       ex <- exact_power_bin(N, prev, se.e, se.min, sp.e, sp.min,
                             z_alpha, ci_method)

@@ -38,10 +38,18 @@
 #' \strong{Paired design.} Superiority uses the asymptotic formula of
 #' Stark et al. (2022, Miettinen). Non-inferiority uses the Liu score method.
 #' Both depend on the discordance \eqn{\psi}, which must satisfy
-#' \eqn{|d| \le \psi \le c + e - 2ce}. The sample size splits the allowed type
-#' II error between the endpoints numerically such that both endpoints imply
-#' the same total sample size and the overall power equals the target. The
-#' returned \code{n} is not rounded.
+#' \eqn{|d| \le \psi \le c + e - 2ce}. As for the unpaired design, the sample
+#' size is the smallest integer \eqn{N} whose overall power reaches the target.
+#'
+#' \strong{Exact power (unpaired design).} With \code{exact = TRUE} the power
+#' is the exact probability, over two independent binomial counts per
+#' endpoint, that the Wald statistic with estimated variance exceeds the
+#' critical value (the same test as in \code{\link{power.copr.comp.emp}}).
+#' The \code{"null"} variance has no exact counterpart, so \code{"unpooled"}
+#' is used unless \code{variance = "pooled"} is given. The exact power is not
+#' monotone in \eqn{N}, so the sample size is found by a scan around the
+#' asymptotic solution (see \code{exact_rule} and \code{\link{power.copr.test}}).
+#' The sums neglect binomial tail probabilities below \eqn{10^{-12}}.
 #'
 #' @references
 #' Stark, M., Hesse, M., Brannath, W., & Zapf, A. (2022).
@@ -58,7 +66,20 @@
 #' @param se.e Sensitivity of the experimental test.
 #' @param sp.c Specificity of the comparator test.
 #' @param sp.e Specificity of the experimental test.
-#' @param alpha One-sided type I error rate per endpoint (default 0.025).
+#' @param alpha Type I error level per endpoint (default 0.025). It is the
+#'   one-sided level unless \code{alternative = "two.sided"}, in which case
+#'   the critical value uses \code{alpha / 2}.
+#' @param alternative \code{"one.sided"} (default) or \code{"two.sided"}.
+#' @param exact Only for \code{design = "unpaired"}: use the exact binomial
+#'   power of the Wald test (estimated variance, \code{variance = "unpooled"}
+#'   by default or \code{"pooled"}) instead of the normal approximation. \code{N}
+#'   must then be an integer, split into \code{round(N * prev)} diseased and
+#'   the remaining non-diseased subjects \emph{per arm}. See Details. Default
+#'   \code{FALSE}.
+#' @param exact_rule Only for \code{exact = TRUE} and a given \code{power}:
+#'   \code{"first"} (default, smallest \eqn{N} reaching the target) or
+#'   \code{"stays_above"} (smallest \eqn{N} from which the power stays at or
+#'   above the target).
 #' @param psi.d Discordance probability in the diseased. Required (and only
 #'   used) for \code{design = "paired"}.
 #' @param psi.nd Discordance probability in the non-diseased. Required (and
@@ -85,18 +106,21 @@
 #'   \item{n_nondis}{Total number of non-diseased subjects.}
 #'   \item{prev}{Disease prevalence.}
 #'   \item{sig.level}{Type I error level.}
-#'   \item{alternative}{\code{"one.sided"}.}
+#'   \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
 #'   \item{power}{Overall power.}
 #'   \item{power_se}{Power for the sensitivity endpoint.}
 #'   \item{power_sp}{Power for the specificity endpoint.}
 #'   \item{type.se}{Hypothesis type for sensitivity.}
 #'   \item{type.sp}{Hypothesis type for specificity.}
+#'   \item{variance}{Variance used (unpaired design only).}
+#'   \item{exact}{Whether exact binomial power was used (unpaired design only).}
 #'   \item{target_power}{Requested power (only when \code{power} was given).}
+#'   \item{exact_rule}{Rule used (only for \code{exact = TRUE} and a given \code{power}).}
 #' }
 #'
 #' @seealso \code{\link{power.copr.test}} for the single-test design.
 #' @author Maia Muresan & Ainesh Sewak (DCR Bern)
-#' @importFrom stats pnorm qnorm
+#' @importFrom stats pnorm qnorm qbinom dbinom
 #' @export
 #' @examples
 #' # Unpaired design: sample size, then power at that sample size
@@ -104,6 +128,11 @@
 #'                      se.c = 0.75, se.e = 0.85,
 #'                      sp.c = 0.65, sp.e = 0.75)
 #' power.copr.comp.test(N = 910, prev = 0.6,
+#'                      se.c = 0.75, se.e = 0.85,
+#'                      sp.c = 0.65, sp.e = 0.75)
+#'
+#' # Unpaired, exact binomial power at an integer N
+#' power.copr.comp.test(N = 300, prev = 0.6, exact = TRUE,
 #'                      se.c = 0.75, se.e = 0.85,
 #'                      sp.c = 0.65, sp.e = 0.75)
 #'
@@ -136,26 +165,44 @@ power.copr.comp.test <- function(N = NULL,
                                  delta.sp = 0,
                                  type.se = c("sup", "ni"),
                                  type.sp = c("sup", "ni"),
-                                 variance = c("null", "pooled", "unpooled")) {
+                                 variance = c("null", "pooled", "unpooled"),
+                                 alternative = c("one.sided", "two.sided"),
+                                 exact = FALSE,
+                                 exact_rule = c("first", "stays_above")) {
 
-  design   <- match.arg(design)
-  type.se  <- match.arg(type.se)
-  type.sp  <- match.arg(type.sp)
+  design      <- match.arg(design)
+  type.se     <- match.arg(type.se)
+  type.sp     <- match.arg(type.sp)
+  alternative <- match.arg(alternative)
+  exact_rule  <- match.arg(exact_rule)
   if (!missing(variance) && design == "paired")
     warning("'variance' is only used for design = \"unpaired\" and is ignored.")
+  var_missing <- missing(variance)
   variance <- match.arg(variance)
 
   # -----------------------------
   # Input validation
   # -----------------------------
-  if (sum(vapply(list(N, power), is.null, logical(1))) != 1) {
-    stop("exactly one of 'N' and 'power' must be NULL")
+  check_one_of(N, power)
+  check_inputs(N = N, power = power, prev = prev, alpha = alpha,
+               probs = list(se.c = se.c, se.e = se.e, sp.c = sp.c, sp.e = sp.e))
+  check_num(delta.se, "delta.se", -1, 1)
+  check_num(delta.sp, "delta.sp", -1, 1)
+
+  if (exact) {
+    if (design == "paired")
+      stop("exact = TRUE is only available for design = \"unpaired\".")
+    if (!is.null(N) && abs(N - round(N)) > 1e-8)
+      stop("N must be an integer when exact = TRUE.")
+    # the exact test estimates the variance from the data, so the "null"
+    # variance (true comparator proportion) has no exact counterpart
+    if (var_missing) variance <- "unpooled"
+    if (variance == "null")
+      stop("exact = TRUE requires variance = \"pooled\" or \"unpooled\".")
   }
-  if (!is.null(N) && N <= 0) stop("N must be positive.")
-  if (!is.null(power) && (power <= 0 || power >= 1))
-    stop("power must be between 0 and 1.")
-  if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
-  if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
+
+  # one-sided level used for the critical value
+  alpha_eff <- if (alternative == "one.sided") alpha else alpha / 2
 
   if (design == "paired") {
     if (is.null(psi.d) || is.null(psi.nd))
@@ -170,19 +217,28 @@ power.copr.comp.test <- function(N = NULL,
                    type.se, type.sp)
   }
 
-  # endpoint powers (se, sp) at total sample size N
-  endpoint_powers <- function(N) {
+  # endpoint powers (se, sp) at total sample size N; the exact version splits
+  # N into round(N * prev) diseased and the remaining non-diseased
+  endpoint_powers <- function(N, exact = FALSE) {
+    if (exact) {
+      n_dis <- round(N * prev)
+      n_nondis <- N - n_dis
+      return(c(se = unpaired_exact_endpoint_power(n_dis, alpha_eff, se.c, se.e,
+                                                  delta.se, type.se, variance),
+               sp = unpaired_exact_endpoint_power(n_nondis, alpha_eff, sp.c, sp.e,
+                                                  delta.sp, type.sp, variance)))
+    }
     n_dis    <- N * prev
     n_nondis <- N * (1 - prev)
     if (design == "unpaired") {
-      c(se = unpaired_endpoint_power(n_dis, alpha, se.c, se.e, delta.se,
+      c(se = unpaired_endpoint_power(n_dis, alpha_eff, se.c, se.e, delta.se,
                                      type.se, variance),
-        sp = unpaired_endpoint_power(n_nondis, alpha, sp.c, sp.e, delta.sp,
+        sp = unpaired_endpoint_power(n_nondis, alpha_eff, sp.c, sp.e, delta.sp,
                                      type.sp, variance))
     } else {
-      c(se = paired_endpoint_power(n_dis, alpha, se.c, se.e, psi.d, delta.se,
+      c(se = paired_endpoint_power(n_dis, alpha_eff, se.c, se.e, psi.d, delta.se,
                                    type.se),
-        sp = paired_endpoint_power(n_nondis, alpha, sp.c, sp.e, psi.nd,
+        sp = paired_endpoint_power(n_nondis, alpha_eff, sp.c, sp.e, psi.nd,
                                    delta.sp, type.sp))
     }
   }
@@ -191,22 +247,28 @@ power.copr.comp.test <- function(N = NULL,
   # Sample size
   # -----------------------------
   if (is.null(N)) {
-    N <- if (design == "unpaired") {
-      find_n(function(N) prod(endpoint_powers(N)), power)
-    } else {
-      paired_n(power, prev, alpha, se.c, se.e, sp.c, sp.e, psi.d, psi.nd,
-               delta.se, delta.sp, type.se, type.sp)
+    N <- find_n(function(N) prod(endpoint_powers(N)), power)
+    if (exact) {
+      # exact power is a sawtooth in N: scan around the asymptotic solution
+      exact_pw <- function(N) vapply(N, function(n) prod(endpoint_powers(n, TRUE)),
+                                     numeric(1))
+      N <- exact_n(exact_pw, power, N_asym = N, rule = exact_rule)
     }
   }
 
-  pw <- endpoint_powers(N)
+  pw <- endpoint_powers(N, exact)
+  n_dis <- if (exact) round(N * prev) else N * prev
 
   # -----------------------------
   # Return structured object
   # -----------------------------
   if (design == "unpaired") {
     method_design <- "Comparative unpaired design"
-    approx <- "Wald normal approximation"
+    approx <- if (exact) {
+      paste0("Exact binomial (Wald test, ", variance, " variance)")
+    } else {
+      "Wald normal approximation"
+    }
   } else {
     scores <- c(sup = "Miettinen", ni = "Liu score")
     method_design <- "Comparative paired design"
@@ -218,11 +280,14 @@ power.copr.comp.test <- function(N = NULL,
   power_htest(
     method = power_method(method_design, approx,
                           if (is.null(power)) "power" else "samplesize"),
-    n = N, n_dis = N * prev, n_nondis = N * (1 - prev), prev = prev,
-    sig.level = alpha, alternative = "one.sided",
+    n = N, n_dis = n_dis, n_nondis = N - n_dis, prev = prev,
+    sig.level = alpha, alternative = alternative,
     power = prod(pw), power_se = pw[["se"]], power_sp = pw[["sp"]],
     target_power = power,
-    type.se = type.se, type.sp = type.sp
+    type.se = type.se, type.sp = type.sp,
+    variance = if (design == "unpaired") variance,
+    exact = if (design == "unpaired") exact,
+    exact_rule = if (exact && !is.null(power)) exact_rule
   )
 }
 
@@ -338,39 +403,30 @@ paired_endpoint_power <- function(n, alpha, c, e, psi, delta = 0, type) {
   }
 }
 
-# Required number of subjects of one endpoint, paired design
-paired_endpoint_n <- function(alpha, beta, c, e, psi, delta = 0, type) {
-  z.beta  <- qnorm(1 - beta)
-  z.alpha <- qnorm(1 - alpha)
-  d <- e - c
+# Exact power of one endpoint, unpaired design, for n per arm (integer):
+# P(reject) under X ~ Bin(n, c), Y ~ Bin(n, e) independent, where the Wald
+# statistic (y/n - x/n + margin) / se_hat > z uses the unpooled or pooled
+# variance estimate (as in power.copr.comp.emp()). Zero/zero counts as not
+# rejected. The sums run over the 1e-12 .. 1 - 1e-12 binomial quantile ranges,
+# so the neglected probability is below 4e-12.
+unpaired_exact_endpoint_power <- function(n, alpha, c, e, delta, type, variance) {
+  if (n < 1) return(0)
+  z <- qnorm(1 - alpha)
+  margin <- if (type == "ni") delta else 0
+  rng <- function(p) qbinom(1e-12, n, p):qbinom(1 - 1e-12, n, p)
+  x <- rng(c); y <- rng(e)
+  px <- dbinom(x, n, c); py <- dbinom(y, n, e)
+  xh <- x / n; yh <- y / n
 
-  if (type == "sup") {
-    (z.alpha * psi + z.beta * sqrt(psi^2 - 0.25 * d^2 * (3 + psi)))^2 /
-      (psi * d^2)
+  # rows: y, columns: x
+  num <- outer(yh, xh, "-") + margin
+  se <- if (variance == "pooled") {
+    pb <- outer(yh, xh, "+") / 2
+    sqrt(2 * pb * (1 - pb) / n)
   } else {
-    ni <- paired_ni_terms(c, e, psi, delta)
-    (ni$var * (z.beta + z.alpha / ni$w_u)^2) / (delta + d)^2
+    sqrt(outer(yh * (1 - yh), xh * (1 - xh), "+") / n)
   }
-}
-
-# Total sample size of the paired design reaching the overall power `power`.
-# The type II error is allocated under the IUT, (1 - beta.se)(1 - beta.sp) =
-# power, such that both endpoints imply the same total N.
-paired_n <- function(power, prev, alpha, se.c, se.e, sp.c, sp.e, psi.d, psi.nd,
-                     delta.se, delta.sp, type.se, type.sp) {
-  N_for <- function(beta.se) {
-    beta.sp <- 1 - power / (1 - beta.se)
-    n.se <- paired_endpoint_n(alpha, beta.se, se.c, se.e, psi.d, delta.se, type.se)
-    n.sp <- paired_endpoint_n(alpha, beta.sp, sp.c, sp.e, psi.nd, delta.sp, type.sp)
-    c(se = n.se / prev, sp = n.sp / (1 - prev))
-  }
-
-  beta.grid <- seq(1e-6, 1 - power - 1e-6, length.out = 10000)
-  diff.values <- vapply(beta.grid, function(beta.se) {
-    beta.sp <- 1 - power / (1 - beta.se)
-    if (beta.sp <= 0 || beta.sp >= 1) return(Inf)
-    abs(diff(N_for(beta.se)))
-  }, numeric(1))
-
-  max(N_for(beta.grid[which.min(diff.values)]))
+  rej <- num / se > z
+  rej[is.na(rej)] <- FALSE
+  sum(outer(py, px) * rej)
 }

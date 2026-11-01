@@ -152,3 +152,52 @@ single_approx <- function(ci_method, exact) {
   if (exact) paste0("Exact binomial (", label, " test)")
   else paste0(label, " normal approximation")
 }
+
+# -----------------------------------------------------------------------------
+# Input validation shared by all power / sample size functions
+# -----------------------------------------------------------------------------
+
+# `x` must be a single non-missing number with lower < x < upper.
+check_num <- function(x, name, lower = -Inf, upper = Inf) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x) || x <= lower || x >= upper) {
+    stop(name, " must be a single number ",
+         if (is.finite(lower) && is.finite(upper))
+           paste0("between ", lower, " and ", upper)
+         else "greater than 0", ".", call. = FALSE)
+  }
+  invisible(x)
+}
+
+# Exactly one of N and power is NULL (it is the one to calculate).
+check_one_of <- function(N, power) {
+  if (sum(vapply(list(N, power), is.null, logical(1))) != 1) {
+    stop("exactly one of 'N' and 'power' must be NULL", call. = FALSE)
+  }
+}
+
+# Checks the non-NULL one of N / power, prevalence, alpha and the named
+# probabilities.
+check_inputs <- function(N = NULL, power = NULL, prev, alpha, probs = list()) {
+  if (!is.null(N)) check_num(N, "N", lower = 0)
+  if (!is.null(power)) check_num(power, "power", 0, 1)
+  check_num(prev, "prev", 0, 1)
+  check_num(alpha, "alpha", 0, 1)
+  for (nm in names(probs)) check_num(probs[[nm]], nm, 0, 1)
+  invisible(TRUE)
+}
+
+# Superiority against a fixed null value needs e > min (single-test design).
+check_single <- function(se.e, se.min, sp.e, sp.min) {
+  for (nm in c("se.e", "se.min", "sp.e", "sp.min")) {
+    check_num(get(nm), nm, 0, 1)
+  }
+  if (se.e <= se.min) stop("se.e must be greater than se.min.", call. = FALSE)
+  if (sp.e <= sp.min) stop("sp.e must be greater than sp.min.", call. = FALSE)
+  invisible(TRUE)
+}
+
+# Critical value of the standard normal test; `alpha` is the one-sided level
+# (or the two-sided level, which is halved).
+z_critical <- function(alpha, alternative) {
+  qnorm(1 - if (alternative == "one.sided") alpha else alpha / 2)
+}

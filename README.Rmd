@@ -67,7 +67,7 @@ The current version implements sample size determination and power evaluation fo
 
 -   Co-primary testing using an intersection--union framework
 
--   Wald-type (or logit) asymptotic normal approximations, and exact binomial power for the single-test design
+-   Wald-type (or logit) asymptotic normal approximations, and exact binomial power for the single-test and the unpaired comparative design
 
 Extensions to continuous endpoints and more general co-primary objectives are planned.
 

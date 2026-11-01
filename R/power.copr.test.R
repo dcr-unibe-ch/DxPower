@@ -117,9 +117,7 @@ power.copr.test <- function(N = NULL,
                             exact = FALSE,
                             exact_rule = c("first", "stays_above")) {
 
-  if (sum(vapply(list(N, power), is.null, logical(1))) != 1) {
-    stop("exactly one of 'N' and 'power' must be NULL")
-  }
+  check_one_of(N, power)
 
   if (is.null(N)) {
     ss_opt_bin(power = power, prev = prev,

@@ -135,11 +135,8 @@ power_opt_bin <- function(N,
   # -----------------------------
   # Input validation
   # -----------------------------
-  if (N <= 0) stop("N must be positive.")
-  if (prev <= 0 || prev >= 1) stop("Prevalence must be between 0 and 1.")
-  if (se.e <= se.min) stop("se.e must be greater than se.min.")
-  if (sp.e <= sp.min) stop("sp.e must be greater than sp.min.")
-  if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
+  check_inputs(N = N, prev = prev, alpha = alpha)
+  check_single(se.e, se.min, sp.e, sp.min)
   if (exact && abs(N - round(N)) > 1e-8)
     stop("N must be an integer when exact = TRUE.")
 
@@ -147,11 +144,7 @@ power_opt_bin <- function(N,
   # Common quantities
   # -----------------------------
   #critical value
-  z_alpha <- if (alternative == "one.sided") {
-    qnorm(1 - alpha)
-  } else {
-    qnorm(1 - alpha/2)
-  }
+  z_alpha <- z_critical(alpha, alternative)
 
   if (exact) {
     # exact binomial power with integer subgroup sizes

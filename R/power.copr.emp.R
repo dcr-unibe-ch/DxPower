@@ -49,9 +49,9 @@ power.copr.emp <- function(n_dis, n_nondis,
 
   ci_method   <- match.arg(ci_method)
   alternative <- match.arg(alternative)
-  if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
+  check_num(alpha, "alpha", 0, 1)
 
-  z <- qnorm(1 - if (alternative == "one.sided") alpha else alpha / 2)
+  z <- z_critical(alpha, alternative)
 
   reject <- function(n, e, min) {
     p_hat <- rbinom(n_sim, n, e) / n
@@ -118,14 +118,16 @@ power.copr.comp.emp <- function(n_dis, n_nondis,
                                          type.se = c("sup", "ni"),
                                          type.sp = c("sup", "ni"),
                                          variance = c("unpooled", "pooled"),
+                                         alternative = c("one.sided", "two.sided"),
                                          n_sim = 10000) {
 
-  type.se  <- match.arg(type.se)
-  type.sp  <- match.arg(type.sp)
-  variance <- match.arg(variance)
-  if (alpha <= 0 || alpha >= 1) stop("alpha must be between 0 and 1.")
+  type.se     <- match.arg(type.se)
+  type.sp     <- match.arg(type.sp)
+  variance    <- match.arg(variance)
+  alternative <- match.arg(alternative)
+  check_num(alpha, "alpha", 0, 1)
 
-  z <- qnorm(1 - alpha)
+  z <- z_critical(alpha, alternative)
 
   reject <- function(n, c, e, delta, type) {
     margin <- if (type == "ni") delta else 0
