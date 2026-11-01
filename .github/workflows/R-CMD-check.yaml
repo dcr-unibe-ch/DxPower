@@ -66,12 +66,6 @@ jobs:
           mkdir -p ~/.R
           echo "CPPFLAGS += -I$(brew --prefix)/include" >> ~/.R/Makevars
           echo "LDFLAGS += -L$(brew --prefix)/lib" >> ~/.R/Makevars
-          # diagnostics: fail here, with context, if png.h is still not visible
-          echo "brew prefix: $(brew --prefix)"
-          ls -l "$(brew --prefix)/include/png.h"
-          echo "--- ~/.R/Makevars"; cat ~/.R/Makevars
-          echo "--- R CMD config"; R CMD config CPPFLAGS; R CMD config LDFLAGS
-          echo "--- R version"; R --version | head -1
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
