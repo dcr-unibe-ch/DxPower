@@ -57,11 +57,19 @@ test_that("exactly one of N and power must be NULL", {
                "exactly one")
 })
 
-test_that("paired design requires psi.d and psi.nd", {
+test_that("paired design defaults to the lower Stark bound with a message", {
   p <- pa[setdiff(names(pa), c("psi.d", "psi.nd"))]
-  expect_error(do.call(power.copr.comp.test, c(p, list(N = 134))), "psi.d and psi.nd")
-  expect_error(do.call(power.copr.comp.test, c(p, list(N = 134, psi.d = 0.09))),
-               "psi.d and psi.nd")
+  expect_message(r <- do.call(power.copr.comp.test, c(p, list(N = 134))),
+                 "lower bound of Stark")
+  # |se.c - se.e| = 0.09 and |sp.c - sp.e| = 0.14 are the psi of `pa`
+  expect_equal(r$psi.d, 0.09)
+  expect_equal(r$psi.nd, 0.14)
+  expect_equal(r$power, do.call(power.copr.comp.test, c(pa, list(N = 134)))$power)
+  # only the missing endpoint is defaulted
+  expect_message(r2 <- do.call(power.copr.comp.test,
+                               c(p, list(N = 134, psi.d = 0.12))),
+                 "psi.nd and rho.nd not given")
+  expect_equal(r2$psi.d, 0.12)
 })
 
 test_that("psi is checked against its bounds and ignored (with warning) if unpaired", {
@@ -72,6 +80,87 @@ test_that("psi is checked against its bounds and ignored (with warning) if unpai
                  "only used for design")
   expect_warning(do.call(power.copr.comp.test,
                          c(pa, list(N = 134, variance = "pooled"))),
+                 "only used for design")
+})
+
+# -- paired: correlation instead of discordance -------------------------------
+
+test_that("rho_to_psi and psi_to_rho are inverses within the Stark range", {
+  for (rho in c(0, 0.3, 0.6)) {
+    psi <- rho_to_psi(0.81, 0.90, rho)
+    expect_equal(psi_to_rho(0.81, 0.90, psi), rho)
+  }
+  # independence: psi = p1 + p2 - 2 p1 p2
+  expect_equal(rho_to_psi(0.81, 0.90, 0), 0.81 + 0.90 - 2 * 0.81 * 0.90)
+  b <- paired_bounds(0.81, 0.90, 0.66, 0.80)
+  expect_equal(names(b), c("endpoint", "psi.min", "psi.max", "rho.min", "rho.max"))
+  # Stark et al. (2022, Eq. 10): |c - e| <= psi <= c + e - 2ce, i.e. rho in [0, rho.max]
+  expect_equal(b$psi.min, c(0.09, 0.14))
+  expect_equal(b$psi.max, c(0.81 + 0.90 - 2 * 0.81 * 0.90,
+                            0.66 + 0.80 - 2 * 0.66 * 0.80))
+  expect_equal(b$rho.min, c(0, 0))
+  expect_equal(rho_to_psi(0.81, 0.90, b$rho.max[1]), b$psi.min[1])
+  expect_equal(rho_to_psi(0.81, 0.90, b$rho.min[1]), b$psi.max[1])
+  expect_equal(psi_to_rho(0.81, 0.90, b$psi.min[1]), b$rho.max[1])
+  expect_equal(psi_to_rho(0.81, 0.90, b$psi.max[1]), 0)
+  # outside the range (including negative correlation) is an error
+  expect_error(rho_to_psi(0.81, 0.90, b$rho.max[1] + 0.01), "range of Stark")
+  expect_error(rho_to_psi(0.81, 0.90, -0.05), "range of Stark")
+  expect_error(psi_to_rho(0.81, 0.90, 0.05), "range of Stark")
+  expect_error(psi_to_rho(0.81, 0.90, b$psi.max[1] + 0.01), "range of Stark")
+})
+
+test_that("paired: psi above c + e - 2ce (negative correlation) is an error", {
+  base <- pa[setdiff(names(pa), c("psi.d", "psi.nd"))]
+  upper <- paired_bounds(0.81, 0.90, 0.66, 0.80)$psi.max[1]
+  expect_error(do.call(power.copr.comp.test,
+                       c(base, list(psi.d = upper + 0.01, psi.nd = 0.14, N = 134))),
+               "psi.d outside")
+  expect_error(do.call(power.copr.comp.test,
+                       c(base, list(rho.d = -0.05, psi.nd = 0.14, N = 134))),
+               "range of Stark")
+  expect_no_warning(do.call(power.copr.comp.test,
+                            c(base, list(psi.d = upper, psi.nd = 0.14, N = 134))))
+})
+
+test_that("paired: rho gives the same result as the equivalent psi", {
+  rho.d <- 0.5; rho.nd <- 0.3
+  psi.d <- rho_to_psi(pa$se.c, pa$se.e, rho.d)
+  psi.nd <- rho_to_psi(pa$sp.c, pa$sp.e, rho.nd)
+  base <- pa[setdiff(names(pa), c("psi.d", "psi.nd"))]
+  for (extra in list(list(), list(delta.sp = 0.05, type.sp = "ni"))) {
+    r <- do.call(power.copr.comp.test,
+                 c(base, extra, list(rho.d = rho.d, rho.nd = rho.nd, N = 134)))
+    p <- do.call(power.copr.comp.test,
+                 c(base, extra, list(psi.d = psi.d, psi.nd = psi.nd, N = 134)))
+    expect_equal(r$power, p$power)
+    expect_equal(r$psi.d, psi.d)
+    expect_equal(r$psi.nd, psi.nd)
+  }
+  # sample size too, and psi / rho may be mixed across endpoints
+  expect_equal(
+    do.call(power.copr.comp.test,
+            c(base, list(rho.d = rho.d, psi.nd = psi.nd, power = 0.8)))$n,
+    do.call(power.copr.comp.test,
+            c(base, list(psi.d = psi.d, psi.nd = psi.nd, power = 0.8)))$n)
+  # larger positive correlation (smaller discordance) needs fewer subjects
+  n_rho <- function(r) do.call(power.copr.comp.test,
+                               c(base, list(rho.d = r, rho.nd = r, power = 0.8)))$n
+  expect_lt(n_rho(0.6), n_rho(0.3))
+})
+
+test_that("paired: exactly one of psi and rho per endpoint", {
+  base <- pa[setdiff(names(pa), c("psi.d", "psi.nd"))]
+  expect_error(do.call(power.copr.comp.test,
+                       c(base, list(psi.d = 0.09, rho.d = 0.5, rho.nd = 0.3, N = 134))),
+               "only one of psi.d and rho.d")
+  # the other endpoint falls back to the lower Stark bound
+  expect_message(do.call(power.copr.comp.test, c(base, list(rho.d = 0.5, N = 134))),
+                 "psi.nd and rho.nd not given")
+  expect_error(do.call(power.copr.comp.test,
+                       c(base, list(rho.d = 0.99, rho.nd = 0.3, N = 134))),
+               "rho.d = 0.99 is outside the range of Stark")
+  expect_warning(do.call(power.copr.comp.test, c(un, list(N = 300, rho.d = 0.1))),
                  "only used for design")
 })
 

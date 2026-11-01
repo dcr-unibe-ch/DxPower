@@ -201,3 +201,50 @@ check_single <- function(se.e, se.min, sp.e, sp.min) {
 z_critical <- function(alpha, alternative) {
   qnorm(1 - if (alternative == "one.sided") alpha else alpha / 2)
 }
+
+# -----------------------------------------------------------------------------
+# Paired design: discordance / correlation helpers
+# -----------------------------------------------------------------------------
+
+# `x` must be a single non-missing number (no range restriction).
+check_scalar <- function(x, name) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x))
+    stop(name, " must be a single number.", call. = FALSE)
+  invisible(x)
+}
+
+# Range of the discordance for marginals p1, p2 (Stark et al., 2022, Eq. 10):
+# |p1 - p2| <= psi <= p1 + p2 - 2 p1 p2. The lower end is the smallest possible
+# discordance (maximal correlation), the upper end the discordance at rho = 0,
+# so the range corresponds to non-negative correlation.
+psi_range <- function(p1, p2) {
+  c(abs(p1 - p2), p1 + p2 - 2 * p1 * p2)
+}
+
+psi_to_rho_raw <- function(p1, p2, psi) {
+  p11 <- (p1 + p2 - psi) / 2
+  (p11 - p1 * p2) / sqrt(p1 * (1 - p1) * p2 * (1 - p2))
+}
+
+# Range of the correlation: 0 (psi maximal) up to the value at minimal psi
+rho_range <- function(p1, p2) {
+  c(0, psi_to_rho_raw(p1, p2, psi_range(p1, p2)[1]))
+}
+
+# Discordance of one endpoint from either psi or rho (at most one of them).
+# If neither is given, the lower end of the Stark et al. (2022) range is used.
+# `suffix` is "d" or "nd" and only used for argument names in messages.
+resolve_psi <- function(psi, rho, p1, p2, suffix) {
+  psi_nm <- paste0("psi.", suffix)
+  rho_nm <- paste0("rho.", suffix)
+  if (!is.null(psi) && !is.null(rho))
+    stop("Specify only one of ", psi_nm, " and ", rho_nm, ".", call. = FALSE)
+  if (!is.null(rho)) return(rho_to_psi(p1, p2, rho, name = rho_nm))
+  if (!is.null(psi)) return(psi)
+  psi <- psi_range(p1, p2)[1]
+  message(psi_nm, " and ", rho_nm, " not given: using the lower bound of ",
+          "Stark et al. (2022), ", psi_nm, " = |p1 - p2| = ", round(psi, 4),
+          ". This is the smallest possible discordance and gives the smallest ",
+          "sample size. Larger discordance needs more subjects.")
+  psi
+}

@@ -13,7 +13,9 @@
 #'     independent proportions.
 #'   \item \code{design = "paired"}: all subjects receive both tests. The
 #'     discordance probabilities \code{psi.d} (diseased) and \code{psi.nd}
-#'     (non-diseased) must be specified.
+#'     (non-diseased) can be specified, or alternatively the correlations
+#'     \code{rho.d} and \code{rho.nd} (one of the two per endpoint). Without
+#'     either, the lower Stark bound is used.
 #' }
 #' Superiority and non-inferiority hypotheses may be specified independently
 #' for sensitivity and specificity. The study is successful only if both
@@ -36,10 +38,27 @@
 #' power reaches the target.
 #'
 #' \strong{Paired design.} Superiority uses the asymptotic formula of
-#' Stark et al. (2022, Miettinen). Non-inferiority uses the Liu score method.
-#' Both depend on the discordance \eqn{\psi}, which must satisfy
-#' \eqn{|d| \le \psi \le c + e - 2ce}. As for the unpaired design, the sample
-#' size is the smallest integer \eqn{N} whose overall power reaches the target.
+#' Stark et al. (2022, Miettinen). Non-inferiority uses the restricted maximum
+#' likelihood (score) test of Liu et al. (2002), with the variance of the
+#' estimated difference evaluated at the boundary of the null hypothesis.
+#' Both depend on the discordance \eqn{\psi}, which must lie in the interval of
+#' Stark et al. (2022, Eq. 10), \eqn{|d| \le \psi \le c + e - 2ce}. This
+#' corresponds to non-negative correlation between the two tests. Negative
+#' correlation is not considered. The sample size increases with \eqn{\psi}. If
+#' no discordance is specified, its lower bound \eqn{|d|} is used, as in the
+#' worked example of Stark et al. As for the unpaired design, the sample size is
+#' the smallest integer \eqn{N} whose overall power reaches the target.
+#'
+#' The dependence between the tests may be given as a correlation
+#' (\code{rho.d}, \code{rho.nd}, phi coefficient of the two binary results)
+#' instead of the discordance. The correlation is converted once, at the
+#' alternative, to the discordance with \code{\link{rho_to_psi}}. All
+#' calculations, including the null quantities of the Liu et al. (2002) score
+#' test, then use this discordance exactly as if \code{psi.d} / \code{psi.nd}
+#' had been given.
+#' The correlation must lie between 0 and its maximum for the given
+#' sensitivities (or specificities). Use \code{\link{paired_bounds}} to see the
+#' feasible ranges before the calculation.
 #'
 #' \strong{Exact power (unpaired design).} With \code{exact = TRUE} the power
 #' is the exact probability, over two independent binomial counts per
@@ -57,6 +76,11 @@
 #' accuracy study.
 #' \emph{BMC Medical Research Methodology}, 22, 115.
 #' \doi{10.1186/s12874-022-01564-2}
+#'
+#' Liu, J., Hsueh, H., Hsieh, E., & Chen, J. J. (2002).
+#' Tests for equivalence or non-inferiority for paired binary data.
+#' \emph{Statistics in Medicine}, 21(2), 231-245.
+#' \doi{10.1002/sim.1012}
 #'
 #' @param N Total sample size, or \code{NULL} to calculate it.
 #' @param power Desired overall power, or \code{NULL} to calculate it.
@@ -80,10 +104,17 @@
 #'   \code{"first"} (default, smallest \eqn{N} reaching the target) or
 #'   \code{"stays_above"} (smallest \eqn{N} from which the power stays at or
 #'   above the target).
-#' @param psi.d Discordance probability in the diseased. Required (and only
-#'   used) for \code{design = "paired"}.
-#' @param psi.nd Discordance probability in the non-diseased. Required (and
-#'   only used) for \code{design = "paired"}.
+#' @param psi.d Discordance probability in the diseased (only for
+#'   \code{design = "paired"}). At most one of \code{psi.d} and \code{rho.d} may
+#'   be given. If neither is, the lower bound of Stark et al. (2022),
+#'   \eqn{|se.c - se.e|}, is used and a message is printed. This is the smallest
+#'   possible discordance and gives the smallest sample size.
+#' @param psi.nd Discordance probability in the non-diseased. As \code{psi.d},
+#'   with default \eqn{|sp.c - sp.e|}.
+#' @param rho.d Correlation of the two tests' results in the diseased, as an
+#'   alternative to \code{psi.d} (only for \code{design = "paired"}).
+#' @param rho.nd Correlation of the two tests' results in the non-diseased, as
+#'   an alternative to \code{psi.nd} (only for \code{design = "paired"}).
 #' @param delta.se Non-inferiority margin for sensitivity
 #'   (used only if \code{type.se = "ni"}).
 #' @param delta.sp Non-inferiority margin for specificity
@@ -112,13 +143,17 @@
 #'   \item{power_sp}{Power for the specificity endpoint.}
 #'   \item{type.se}{Hypothesis type for sensitivity.}
 #'   \item{type.sp}{Hypothesis type for specificity.}
+#'   \item{psi.d, psi.nd}{Discordance used (paired design only). It is converted
+#'     from \code{rho.d} / \code{rho.nd} if those were given.}
 #'   \item{variance}{Variance used (unpaired design only).}
 #'   \item{exact}{Whether exact binomial power was used (unpaired design only).}
 #'   \item{target_power}{Requested power (only when \code{power} was given).}
 #'   \item{exact_rule}{Rule used (only for \code{exact = TRUE} and a given \code{power}).}
 #' }
 #'
-#' @seealso \code{\link{power.copr.test}} for the single-test design.
+#' @seealso \code{\link{power.copr.test}} for the single-test design,
+#'   \code{\link{paired_bounds}} and \code{\link{rho_to_psi}} for the paired
+#'   dependence parameters.
 #' @author Maia Muresan & Ainesh Sewak (DCR Bern)
 #' @importFrom stats pnorm qnorm qbinom dbinom
 #' @export
@@ -142,7 +177,7 @@
 #'                      sp.c = 0.65, sp.e = 0.75,
 #'                      delta.sp = 0.05, type.sp = "ni")
 #'
-#' # Paired design: psi.d and psi.nd are required
+#' # Paired design with discordances (default if omitted: lower Stark bound)
 #' power.copr.comp.test(power = 0.80, prev = 0.47, design = "paired",
 #'                      se.c = 0.81, se.e = 0.90,
 #'                      sp.c = 0.66, sp.e = 0.80,
@@ -152,6 +187,13 @@
 #'                      sp.c = 0.66, sp.e = 0.80,
 #'                      psi.d = 0.09, psi.nd = 0.14,
 #'                      delta.sp = 0.05, type.sp = "ni")
+#'
+#' # Paired design with correlations instead of discordances
+#' paired_bounds(se.c = 0.81, se.e = 0.90, sp.c = 0.66, sp.e = 0.80)
+#' power.copr.comp.test(power = 0.80, prev = 0.47, design = "paired",
+#'                      se.c = 0.81, se.e = 0.90,
+#'                      sp.c = 0.66, sp.e = 0.80,
+#'                      rho.d = 0.5, rho.nd = 0.3)
 power.copr.comp.test <- function(N = NULL,
                                  power = NULL,
                                  prev,
@@ -161,6 +203,8 @@ power.copr.comp.test <- function(N = NULL,
                                  alpha = 0.025,
                                  psi.d = NULL,
                                  psi.nd = NULL,
+                                 rho.d = NULL,
+                                 rho.nd = NULL,
                                  delta.se = 0,
                                  delta.sp = 0,
                                  type.se = c("sup", "ni"),
@@ -205,14 +249,16 @@ power.copr.comp.test <- function(N = NULL,
   alpha_eff <- if (alternative == "one.sided") alpha else alpha / 2
 
   if (design == "paired") {
-    if (is.null(psi.d) || is.null(psi.nd))
-      stop("psi.d and psi.nd must be specified for design = \"paired\".")
+    # the correlation is converted once, at the alternative; everything below
+    # works with the discordance (default: lower Stark bound)
+    psi.d  <- resolve_psi(psi.d,  rho.d,  se.c, se.e, "d")
+    psi.nd <- resolve_psi(psi.nd, rho.nd, sp.c, sp.e, "nd")
     check_paired(se.c, se.e, sp.c, sp.e, psi.d, psi.nd,
                  delta.se, delta.sp, type.se, type.sp)
   } else {
-    if (!is.null(psi.d) || !is.null(psi.nd))
-      warning("'psi.d' and 'psi.nd' are only used for design = \"paired\" ",
-              "and are ignored.")
+    if (!is.null(psi.d) || !is.null(psi.nd) || !is.null(rho.d) || !is.null(rho.nd))
+      warning("'psi.d', 'psi.nd', 'rho.d' and 'rho.nd' are only used for ",
+              "design = \"paired\" and are ignored.")
     check_unpaired(se.c, se.e, sp.c, sp.e, delta.se, delta.sp,
                    type.se, type.sp)
   }
@@ -285,6 +331,8 @@ power.copr.comp.test <- function(N = NULL,
     power = prod(pw), power_se = pw[["se"]], power_sp = pw[["sp"]],
     target_power = power,
     type.se = type.se, type.sp = type.sp,
+    psi.d = if (design == "paired") psi.d,
+    psi.nd = if (design == "paired") psi.nd,
     variance = if (design == "unpaired") variance,
     exact = if (design == "unpaired") exact,
     exact_rule = if (exact && !is.null(power)) exact_rule
@@ -333,10 +381,10 @@ check_paired <- function(se.c, se.e, sp.c, sp.e, psi.d, psi.nd,
             "Non-inferiority may be easy to demonstrate with this margin.")
   }
 
-  # Discordance bounds for paired binary data: |d| <= psi <= c + e - 2ce
+  # Discordance range of Stark et al. (2022, Eq. 10): |d| <= psi <= c + e - 2ce
   psi_bounds <- function(psi, c, e, name) {
-    lower <- abs(c - e)
-    upper <- c + e - 2 * c * e
+    lower <- psi_range(c, e)[1]
+    upper <- psi_range(c, e)[2]
     if (psi < lower || psi > upper) {
       stop(name, " outside theoretical bounds for paired binary data. ",
            name, " must satisfy: ", round(lower, 4), " <= ", name, " <= ",
@@ -365,7 +413,9 @@ unpaired_endpoint_power <- function(n, alpha, c, e, delta, type, variance) {
   1 - pnorm(z.alpha * sqrt(V0 / n), (e - c) + margin, sqrt(VA / n))
 }
 
-# Liu score quantities for paired non-inferiority: w_u and sigma^2 * n
+# Score quantities for paired non-inferiority (Liu et al., 2002, Stat Med 21:
+# 231-245, Section 3.2): w_u (the paper's w_l, ratio of the true and the
+# restricted-MLE standard error) and sigma^2 * n.
 paired_ni_terms <- function(c, e, psi, delta) {
   d <- e - c
   if (delta + d <= 0)
