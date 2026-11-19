@@ -9,11 +9,10 @@
 #' the asymptotic power.
 #'
 #' @details
-#' The number of true positives is drawn from
-#' \eqn{\mathrm{Bin}(n_{dis}, Se_E)}{Bin(n_dis, se.e)} and the number of true
-#' negatives from \eqn{\mathrm{Bin}(n_{nondis}, Sp_E)}{Bin(n_nondis, sp.e)},
-#' independently, for all \code{n_sim}
-#' replications at once (no loop). For an observed proportion
+#' In each replication the true positives are drawn from
+#' \eqn{\mathrm{Bin}}{Bin}(\code{n_dis}, \code{se.e}) and, independently, the
+#' true negatives from \eqn{\mathrm{Bin}}{Bin}(\code{n_nondis}, \code{sp.e}),
+#' for all \code{n_sim} replications at once (no loop). For an observed proportion
 #' \eqn{\hat p}{p_hat} and null value \eqn{p_0}{p0} an endpoint is rejected if
 #' \deqn{\sqrt{n}\,(g(\hat p) - g(p_0)) / \sqrt{V_0} > z_{1-\alpha},}{sqrt(n) * (g(p_hat) - g(p0)) / sqrt(V0) > z_(1-alpha),}
 #' with \eqn{g}{g} the identity (\code{"wald"}) or the logit (\code{"logit"}).
@@ -24,15 +23,16 @@
 #' variance under the null and therefore coincides with the Wilson score
 #' interval: rejecting is the same as the lower limit of
 #' \code{prop.test(x, n, conf.level = 1 - 2 * alpha, correct = FALSE)}
-#' exceeding \code{p_0}.
+#' exceeding \eqn{p_0}{p0}.
 #'
 #' @param n_dis,n_nondis Number of diseased and non-diseased individuals.
 #' @inheritParams power.copr.test
 #' @param n_sim Number of simulation replications.
-#'
-#' @return Named numeric vector with the empirical \code{overall} power and the
-#'   empirical power of the sensitivity (\code{se}) and specificity
-#'   (\code{sp}) test. The Monte Carlo standard error of each is at most
+#' @return Named numeric vector with the empirical power. \code{se} and
+#'   \code{sp} are the proportions of the \code{n_sim} replications in which
+#'   the sensitivity and the specificity endpoint is rejected, respectively.
+#'   \code{overall} is the proportion in which \emph{both} are rejected.
+#'   The Monte Carlo standard error of each is at most
 #'   \eqn{0.5/\sqrt{n_{sim}}}{0.5 / sqrt(n_sim)}.
 #'
 #' @seealso \code{\link{power.copr.test}},\code{\link{power.copr.comp.emp}}
@@ -94,15 +94,24 @@ reject_single <- function(x, n, min, z, ci_method = c("wald", "logit")) {
 #' statistic has the variance of a difference of two estimated proportions.
 #'
 #' @details
-#' For each endpoint, \eqn{\hat p_C \sim \mathrm{Bin}(n, p_C)/n}{p_C_hat ~ Bin(n, p_C) / n} and
-#' \eqn{\hat p_E \sim \mathrm{Bin}(n, p_E)/n}{p_E_hat ~ Bin(n, p_E) / n} are drawn independently (\code{n_dis}
-#' per arm for the sensitivity, \code{n_nondis} per arm for the specificity)
-#' and the Wald statistic
-#' \eqn{(\hat p_E - \hat p_C + \delta) / \widehat{\mathrm{se}} > z_{1-\alpha}}{(p_E_hat - p_C_hat + delta) / se_hat > z_(1-alpha)}
-#' is evaluated, where \eqn{\delta}{delta} is the non-inferiority margin (0 for
-#' superiority) and the standard error \eqn{\widehat{\mathrm{se}}}{se_hat} uses either the unpooled variance or the
-#' pooled proportion \eqn{(\hat p_C + \hat p_E)/2}{(p_C_hat + p_E_hat) / 2}. Replications with a zero
-#' standard error and a zero numerator count as not rejected.
+#' In each replication the true positives of the comparator and the
+#' experimental test are drawn independently from
+#' \eqn{\mathrm{Bin}}{Bin}(\code{n_dis}, \code{se.c}) and
+#' \eqn{\mathrm{Bin}}{Bin}(\code{n_dis}, \code{se.e}), and the true negatives
+#' from \eqn{\mathrm{Bin}}{Bin}(\code{n_nondis}, \code{sp.c}) and
+#' \eqn{\mathrm{Bin}}{Bin}(\code{n_nondis}, \code{sp.e}). With the observed
+#' sensitivities \eqn{\widehat{\mathrm{Se}}_C}{Se_C_hat} and
+#' \eqn{\widehat{\mathrm{Se}}_E}{Se_E_hat} (counts divided by \code{n_dis}), the
+#' sensitivity endpoint is rejected if
+#' \deqn{\frac{\widehat{\mathrm{Se}}_E - \widehat{\mathrm{Se}}_C + \delta_{\mathrm{Se}}}{\widehat{\mathrm{se}}} > z_{1-\alpha},}{(Se_E_hat - Se_C_hat + delta_Se) / se_hat > z_(1-alpha),}
+#' where \eqn{\delta_{\mathrm{Se}}}{delta_Se} is \code{delta.se} for \code{type.se = "ni"}
+#' and 0 for superiority, and \eqn{\widehat{\mathrm{se}}}{se_hat} is the
+#' standard error of the difference, from the unpooled variance or the pooled
+#' proportion \eqn{(\widehat{\mathrm{Se}}_C + \widehat{\mathrm{Se}}_E)/2}{(Se_C_hat + Se_E_hat) / 2}
+#' (see \code{variance}). The specificity endpoint is analogous, with
+#' \code{n_nondis}, \code{sp.c}, \code{sp.e}, \code{delta.sp} and
+#' \code{type.sp}. Replications with a zero standard error and a zero numerator
+#' count as not rejected.
 #'
 #' @param n_dis,n_nondis Number of diseased and non-diseased individuals
 #'   \emph{per arm}.
@@ -113,8 +122,10 @@ reject_single <- function(x, n, min, z, ci_method = c("wald", "logit")) {
 #'   and has no empirical counterpart.)
 #' @param n_sim Number of simulation replications.
 #'
-#' @return Named numeric vector with the empirical \code{overall}, \code{se}
-#'   and \code{sp} power.
+#' @return Named numeric vector with the empirical power. \code{se} and
+#'   \code{sp} are the proportions of the \code{n_sim} replications in which
+#'   the sensitivity and the specificity endpoint is rejected, respectively. 
+#'   \code{overall} the proportion in which \emph{both} are rejected.
 #'
 #' @seealso \code{\link{power.copr.comp.test}}, \code{\link{power.copr.emp}}
 #' @export

@@ -37,9 +37,11 @@ power.copr.emp(
 \item{n_sim}{Number of simulation replications.}
 }
 \value{
-Named numeric vector with the empirical \code{overall} power and the
-  empirical power of the sensitivity (\code{se}) and specificity
-  (\code{sp}) test. The Monte Carlo standard error of each is at most
+Named numeric vector with the empirical power. \code{se} and
+  \code{sp} are the proportions of the \code{n_sim} replications in which
+  the sensitivity and the specificity endpoint is rejected, respectively.
+  \code{overall} is the proportion in which \emph{both} are rejected.
+  The Monte Carlo standard error of each is at most
   \eqn{0.5/\sqrt{n_{sim}}}{0.5 / sqrt(n_sim)}.
 }
 \description{
@@ -51,11 +53,10 @@ declared significant in a single-test design: the observed sensitivity
 the asymptotic power.
 }
 \details{
-The number of true positives is drawn from
-\eqn{\mathrm{Bin}(n_{dis}, Se_E)}{Bin(n_dis, se.e)} and the number of true
-negatives from \eqn{\mathrm{Bin}(n_{nondis}, Sp_E)}{Bin(n_nondis, sp.e)},
-independently, for all \code{n_sim}
-replications at once (no loop). For an observed proportion
+In each replication the true positives are drawn from
+\eqn{\mathrm{Bin}}{Bin}(\code{n_dis}, \code{se.e}) and, independently, the
+true negatives from \eqn{\mathrm{Bin}}{Bin}(\code{n_nondis}, \code{sp.e}),
+for all \code{n_sim} replications at once (no loop). For an observed proportion
 \eqn{\hat p}{p_hat} and null value \eqn{p_0}{p0} an endpoint is rejected if
 \deqn{\sqrt{n}\,(g(\hat p) - g(p_0)) / \sqrt{V_0} > z_{1-\alpha},}{sqrt(n) * (g(p_hat) - g(p0)) / sqrt(V0) > z_(1-alpha),}
 with \eqn{g}{g} the identity (\code{"wald"}) or the logit (\code{"logit"}).
@@ -66,7 +67,7 @@ with \eqn{g}{g} the identity (\code{"wald"}) or the logit (\code{"logit"}).
 variance under the null and therefore coincides with the Wilson score
 interval: rejecting is the same as the lower limit of
 \code{prop.test(x, n, conf.level = 1 - 2 * alpha, correct = FALSE)}
-exceeding \code{p_0}.
+exceeding \eqn{p_0}{p0}.
 }
 \examples{
 set.seed(1)

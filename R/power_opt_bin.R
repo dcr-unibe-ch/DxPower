@@ -17,8 +17,8 @@
 #'
 #' @details
 #' Let \eqn{\pi}{pi} denote the assumed disease prevalence. The study population
-#' is partitioned into diseased (\eqn{N_{Se} = N\pi}{N_Se = N * pi}) and non-diseased
-#' (\eqn{N_{Sp} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
+#' is partitioned into diseased (\eqn{N_{\mathrm{Se}} = N\pi}{N_Se = N * pi}) and non-diseased
+#' (\eqn{N_{\mathrm{Sp}} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
 #'
 #' Endpoint-specific powers are derived from the asymptotic normal
 #' test statistics corresponding to the sample size formulas.

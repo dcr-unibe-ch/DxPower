@@ -59,8 +59,10 @@ and has no empirical counterpart.)}
 \item{n_sim}{Number of simulation replications.}
 }
 \value{
-Named numeric vector with the empirical \code{overall}, \code{se}
-  and \code{sp} power.
+Named numeric vector with the empirical power. \code{se} and
+  \code{sp} are the proportions of the \code{n_sim} replications in which
+  the sensitivity and the specificity endpoint is rejected, respectively. 
+  \code{overall} the proportion in which \emph{both} are rejected.
 }
 \description{
 Monte Carlo estimate of the probability that both co-primary endpoints are
@@ -71,15 +73,24 @@ sample of the same size, so the result is \emph{not} the same as
 statistic has the variance of a difference of two estimated proportions.
 }
 \details{
-For each endpoint, \eqn{\hat p_C \sim \mathrm{Bin}(n, p_C)/n}{p_C_hat ~ Bin(n, p_C) / n} and
-\eqn{\hat p_E \sim \mathrm{Bin}(n, p_E)/n}{p_E_hat ~ Bin(n, p_E) / n} are drawn independently (\code{n_dis}
-per arm for the sensitivity, \code{n_nondis} per arm for the specificity)
-and the Wald statistic
-\eqn{(\hat p_E - \hat p_C + \delta) / \widehat{\mathrm{se}} > z_{1-\alpha}}{(p_E_hat - p_C_hat + delta) / se_hat > z_(1-alpha)}
-is evaluated, where \eqn{\delta}{delta} is the non-inferiority margin (0 for
-superiority) and the standard error \eqn{\widehat{\mathrm{se}}}{se_hat} uses either the unpooled variance or the
-pooled proportion \eqn{(\hat p_C + \hat p_E)/2}{(p_C_hat + p_E_hat) / 2}. Replications with a zero
-standard error and a zero numerator count as not rejected.
+In each replication the true positives of the comparator and the
+experimental test are drawn independently from
+\eqn{\mathrm{Bin}}{Bin}(\code{n_dis}, \code{se.c}) and
+\eqn{\mathrm{Bin}}{Bin}(\code{n_dis}, \code{se.e}), and the true negatives
+from \eqn{\mathrm{Bin}}{Bin}(\code{n_nondis}, \code{sp.c}) and
+\eqn{\mathrm{Bin}}{Bin}(\code{n_nondis}, \code{sp.e}). With the observed
+sensitivities \eqn{\widehat{\mathrm{Se}}_C}{Se_C_hat} and
+\eqn{\widehat{\mathrm{Se}}_E}{Se_E_hat} (counts divided by \code{n_dis}), the
+sensitivity endpoint is rejected if
+\deqn{\frac{\widehat{\mathrm{Se}}_E - \widehat{\mathrm{Se}}_C + \delta_{\mathrm{Se}}}{\widehat{\mathrm{se}}} > z_{1-\alpha},}{(Se_E_hat - Se_C_hat + delta_Se) / se_hat > z_(1-alpha),}
+where \eqn{\delta_{\mathrm{Se}}}{delta_Se} is \code{delta.se} for \code{type.se = "ni"}
+and 0 for superiority, and \eqn{\widehat{\mathrm{se}}}{se_hat} is the
+standard error of the difference, from the unpooled variance or the pooled
+proportion \eqn{(\widehat{\mathrm{Se}}_C + \widehat{\mathrm{Se}}_E)/2}{(Se_C_hat + Se_E_hat) / 2}
+(see \code{variance}). The specificity endpoint is analogous, with
+\code{n_nondis}, \code{sp.c}, \code{sp.e}, \code{delta.sp} and
+\code{type.sp}. Replications with a zero standard error and a zero numerator
+count as not rejected.
 }
 \examples{
 set.seed(1)

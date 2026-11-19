@@ -69,7 +69,9 @@
 #' sensitivities (or specificities). Use \code{\link{paired_bounds}} to see the
 #' feasible ranges before the calculation.
 #'
-#' \strong{Exact power (unpaired design).} With \code{exact = TRUE} the power
+#' \strong{Exact power (unpaired design, experimental).} This option is still
+#' experimental: it needs further development and testing, and its interface
+#' and results may change. With \code{exact = TRUE} the power
 #' is the exact probability, over two independent binomial counts per
 #' endpoint, that the Wald statistic with estimated variance exceeds the
 #' critical value (the same test as in \code{\link{power.copr.comp.emp}}).
@@ -94,7 +96,7 @@
 #' @param N Sample size, or \code{NULL} to calculate it. Participants per arm
 #'   (unpaired) or in total (paired).
 #' @param power Desired overall power, or \code{NULL} to calculate it.
-#' @param prev Disease prevalence (0 < prev < 1).
+#' @param prev Disease prevalence (\code{0 < prev < 1}).
 #' @param design \code{"unpaired"} (default) or \code{"paired"}.
 #' @param se.c Sensitivity of the comparator test.
 #' @param se.e Sensitivity of the experimental test.
@@ -104,7 +106,7 @@
 #'   one-sided level unless \code{alternative = "two.sided"}, in which case
 #'   the critical value uses \code{alpha / 2}.
 #' @param alternative \code{"one.sided"} (default) or \code{"two.sided"}.
-#' @param exact Only for \code{design = "unpaired"}: use the exact binomial
+#' @param exact \emph{Experimental.} Only for \code{design = "unpaired"}: use the exact binomial
 #'   power of the Wald test (estimated variance, \code{variance = "unpooled"}
 #'   by default or \code{"pooled"}) instead of the normal approximation. \code{N}
 #'   must then be an integer, split into \code{round(N * prev)} diseased and

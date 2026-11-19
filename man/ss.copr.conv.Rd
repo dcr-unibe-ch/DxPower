@@ -20,7 +20,7 @@ ss.copr.conv(
 \arguments{
 \item{power}{Desired overall power, or \code{NULL} to calculate it.}
 
-\item{prev}{Disease prevalence (0 < prev < 1).}
+\item{prev}{Disease prevalence (\code{0 < prev < 1}).}
 
 \item{se.e}{Sensitivity under the alternative hypothesis.}
 

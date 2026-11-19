@@ -24,7 +24,7 @@ power.copr.test(
 
 \item{power}{Desired overall power, or \code{NULL} to calculate it.}
 
-\item{prev}{Disease prevalence (0 < prev < 1).}
+\item{prev}{Disease prevalence (\code{0 < prev < 1}).}
 
 \item{se.e}{Sensitivity under the alternative hypothesis.}
 
@@ -40,8 +40,8 @@ power.copr.test(
 
 \item{alternative}{"one.sided" (default) or "two.sided".}
 
-\item{exact}{Use the exact binomial power instead of the normal
-approximation, see Details. Default \code{FALSE}.}
+\item{exact}{\emph{Experimental.} Use the exact binomial power instead of the
+normal approximation, see Details. Default \code{FALSE}.}
 
 \item{exact_rule}{Only for \code{exact = TRUE} and a given \code{power}:
 \code{"first"} (default) or \code{"stays_above"}.}
@@ -81,8 +81,8 @@ determines the expected number of diseased and non-diseased subjects.
 }
 \details{
 Let \eqn{\pi}{pi} denote the assumed disease prevalence. The study population
-is partitioned into diseased (\eqn{N_{Se} = N\pi}{N_Se = N * pi}) and non-diseased
-(\eqn{N_{Sp} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
+is partitioned into diseased (\eqn{N_{\mathrm{Se}} = N\pi}{N_Se = N * pi}) and non-diseased
+(\eqn{N_{\mathrm{Sp}} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
 
 Endpoint-specific powers are based on large-sample normal approximations for
 binomial proportions, using either:
@@ -103,8 +103,10 @@ one endpoint. When \code{power} is given, the required total sample size is
 instead the smallest integer \eqn{N}{N} for which the overall power reaches the
 target. It is found by bracketing (doubling) and bisection.
 
-With \code{exact = TRUE} the power is the exact binomial probability that
-both tests reject. It is not monotone in \eqn{N}{N} (it is a sawtooth), so the
+\strong{Exact power (experimental).} With \code{exact = TRUE} the power is
+the exact binomial probability that both tests reject. This option is still
+experimental: it needs further development and testing, and its interface
+and results may change. It is not monotone in \eqn{N}{N} (it is a sawtooth), so the
 bisection is replaced by a vectorised scan over integer \eqn{N}{N} in a window
 around the asymptotic solution (0.5 to 1.5 times, extended automatically if
 needed). Subgroup sizes are \code{round(N * prev)} and the remainder, and
