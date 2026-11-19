@@ -74,15 +74,15 @@ Both endpoints are tested for superiority against fixed null values.
 Study success requires rejection of both null hypotheses. Overall power is
 therefore defined under an intersection-union testing (IUT) framework. Under
 this framework the global type I error rate is controlled at level
-\eqn{\alpha} without multiplicity adjustment.
+\eqn{\alpha}{alpha} without multiplicity adjustment.
 
 The calculation explicitly accounts for the assumed disease prevalence, which
 determines the expected number of diseased and non-diseased subjects.
 }
 \details{
-Let \eqn{\pi} denote the assumed disease prevalence. The study population
-is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
-(\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
+Let \eqn{\pi}{pi} denote the assumed disease prevalence. The study population
+is partitioned into diseased (\eqn{N_{Se} = N\pi}{N_Se = N * pi}) and non-diseased
+(\eqn{N_{Sp} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
 
 Endpoint-specific powers are based on large-sample normal approximations for
 binomial proportions, using either:
@@ -93,28 +93,27 @@ binomial proportions, using either:
 
 Overall power is the probability that both tests reject. Because the
 endpoints are independent, this equals
-\deqn{
-Power_{overall} = Power_{Se} \times Power_{Sp}.
-}
+\deqn{\mathrm{Power}_{\mathrm{Overall}} = \mathrm{Power}_{\mathrm{Se}} \times
+  \mathrm{Power}_{\mathrm{Sp}}.}{Power_Overall = Power_Se * Power_Sp.}
 
 When prevalence is very low or very high, one subgroup may require
 substantially more subjects than the other. A naive calculation (taking the
 maximum of two independently calculated sample sizes) may therefore overpower
 one endpoint. When \code{power} is given, the required total sample size is
-instead the smallest integer \eqn{N} for which the overall power reaches the
+instead the smallest integer \eqn{N}{N} for which the overall power reaches the
 target. It is found by bracketing (doubling) and bisection.
 
 With \code{exact = TRUE} the power is the exact binomial probability that
-both tests reject. It is not monotone in \eqn{N} (it is a sawtooth), so the
-bisection is replaced by a vectorised scan over integer \eqn{N} in a window
+both tests reject. It is not monotone in \eqn{N}{N} (it is a sawtooth), so the
+bisection is replaced by a vectorised scan over integer \eqn{N}{N} in a window
 around the asymptotic solution (0.5 to 1.5 times, extended automatically if
 needed). Subgroup sizes are \code{round(N * prev)} and the remainder, and
 \code{N} must be an integer. \code{exact_rule} selects the sample size:
 \itemize{
-  \item \code{"first"}: the smallest \eqn{N} reaching the target power.
-    The power may fall below the target again for slightly larger \eqn{N}.
-  \item \code{"stays_above"}: the smallest \eqn{N} from which the power
-    stays at or above the target for all larger \eqn{N}.
+  \item \code{"first"}: the smallest \eqn{N}{N} reaching the target power.
+    The power may fall below the target again for slightly larger \eqn{N}{N}.
+  \item \code{"stays_above"}: the smallest \eqn{N}{N} from which the power
+    stays at or above the target for all larger \eqn{N}{N}.
 }
 
 The methodology follows the joint sample size framework for single-arm

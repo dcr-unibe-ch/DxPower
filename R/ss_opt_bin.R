@@ -9,16 +9,16 @@
 #' Overall power is defined under an intersection–union testing (IUT)
 #' framework, meaning that both null hypotheses must be rejected for
 #' the study to be successful. Under this framework, the global Type I
-#' error rate is controlled at level \eqn{\alpha} without multiplicity
+#' error rate is controlled at level \eqn{\alpha}{alpha} without multiplicity
 #' adjustment.
 #'
 #' The calculation explicitly accounts for disease prevalence, which
 #' determines the expected number of diseased and non-diseased subjects.
 #'
 #' @details
-#' Let \eqn{\pi} denote the assumed disease prevalence. The study population
-#' is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
-#' (\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
+#' Let \eqn{\pi}{pi} denote the assumed disease prevalence. The study population
+#' is partitioned into diseased (\eqn{N_{Se} = N\pi}{N_Se = N * pi}) and non-diseased
+#' (\eqn{N_{Sp} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
 #'
 #' When prevalence is very low or very high, one subgroup may require
 #' substantially more subjects than the other. A naive calculation (e.g. taking
@@ -28,7 +28,7 @@
 #'
 #' This function implements a joint sample size calculation that accounts
 #' for both endpoints simultaneously: the required total sample size is the
-#' smallest integer \eqn{N} for which the overall power, as computed by
+#' smallest integer \eqn{N}{N} for which the overall power, as computed by
 #' \code{power_opt_bin()}, reaches the target. Neither sensitivity nor
 #' specificity is treated as the sole driver of the sample size.
 #' Power is based on large-sample normal approximations
@@ -40,22 +40,22 @@
 #'
 #' Overall power is the probability that both tests reject. Because the
 #' endpoints are independent, this equals
-#' \deqn{
-#' Power_{overall} = Power_{Se} \times Power_{Sp}.
-#' }
-#' \eqn{N} is found by bracketing (doubling) and bisection.
+#' \deqn{\mathrm{Power}_{\mathrm{Overall}} = \mathrm{Power}_{\mathrm{Se}} \times
+#'   \mathrm{Power}_{\mathrm{Sp}}.}{Power_Overall = Power_Se * Power_Sp.}
+#' Without \code{exact}, \eqn{N}{N} is found by doubling an upper bound and
+#' then bisection, since the asymptotic power is non-decreasing in \eqn{N}{N}.
 #'
 #' With \code{exact = TRUE} the power is the exact binomial probability that
-#' both tests reject. It is not monotone in \eqn{N} (it is a sawtooth), so the
-#' bisection is replaced by a vectorised scan over integer \eqn{N} in a window
+#' both tests reject. It is not monotone in \eqn{N}{N} (it is a sawtooth), so the
+#' bisection is replaced by a vectorised scan over integer \eqn{N}{N} in a window
 #' around the asymptotic solution (0.5 to 1.5 times, extended
 #' automatically if needed). Subgroup sizes are \code{round(N * prev)} and the
 #' remainder. \code{exact_rule} selects the sample size:
 #' \itemize{
-#'   \item \code{"first"}: the smallest \eqn{N} reaching the target power.
-#'     The power may fall below the target again for slightly larger \eqn{N}.
-#'   \item \code{"stays_above"}: the smallest \eqn{N} from which the power
-#'     stays at or above the target for all larger \eqn{N}.
+#'   \item \code{"first"}: the smallest \eqn{N}{N} reaching the target power.
+#'     The power may fall below the target again for slightly larger \eqn{N}{N}.
+#'   \item \code{"stays_above"}: the smallest \eqn{N}{N} from which the power
+#'     stays at or above the target for all larger \eqn{N}{N}.
 #' }
 #'
 #' The methodology follows the joint sample size framework for single-arm
@@ -83,7 +83,6 @@
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
 #' @author Ainesh Sewak & Maia Muresan (DCR Bern)
-#' @importFrom stats approx pnorm qnorm spline
 #' @return An object of class \code{"power.htest"}, a list with the elements:
 #' \describe{
 #'   \item{n}{Total sample size.}

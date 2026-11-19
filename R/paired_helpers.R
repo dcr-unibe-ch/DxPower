@@ -4,15 +4,18 @@
 #' For one endpoint of a paired design, the two tests give a pair of binary
 #' results with marginal probabilities \code{p1} (comparator) and \code{p2}
 #' (experimental). The joint distribution is fixed by the marginals and either
-#' the discordance \eqn{\psi = P(\text{results differ})} or the correlation
-#' (phi coefficient) \eqn{\rho}:
+#' the discordance \eqn{\psi = P(\mathrm{results\ differ})}{psi = P(results differ)}
+#' or the correlation (phi coefficient) \eqn{\rho}{rho}, where
+#' \eqn{p_{11}}{p11} is the probability that both tests are positive:
 #' \deqn{p_{11} = \frac{p_1 + p_2 - \psi}{2}, \qquad
-#'   \rho = \frac{p_{11} - p_1 p_2}{\sqrt{p_1(1-p_1)p_2(1-p_2)}}.}
+#'   \rho = \frac{p_{11} - p_1 p_2}{\sqrt{p_1(1-p_1)p_2(1-p_2)}}.}{p11 = (p1 + p2 - psi) / 2,  rho = (p11 - p1 * p2) / sqrt(p1 * (1 - p1) * p2 * (1 - p2)).}
 #' \code{rho_to_psi()} and \code{psi_to_rho()} convert between the two.
 #' Both parameters are restricted to the range of Stark et al. (2022, Eq. 10),
-#' \eqn{|p_1 - p_2| \le \psi \le p_1 + p_2 - 2 p_1 p_2}. The upper end is the
+#' \eqn{|p_1 - p_2| \le \psi \le p_1 + p_2 - 2 p_1 p_2}{|p1 - p2| <= psi <= p1 + p2 - 2 * p1 * p2}.
+#' The upper end is the
 #' discordance of uncorrelated tests, so this range is
-#' \eqn{0 \le \rho \le \rho_{max}}: negative correlation (the tests tend to err
+#' \eqn{0 \le \rho \le \rho_{max}}{0 <= rho <= rho_max}: negative correlation
+#' (the tests tend to err
 #' on different subjects) is not considered. A value outside the range is an
 #' error.
 #'
@@ -21,8 +24,8 @@
 #' @param rho Correlation between the two binary results.
 #' @param psi Discordance probability.
 #' @param name Name used in error messages.
-#' @return A single number: \eqn{\psi} for \code{rho_to_psi()}, \eqn{\rho} for
-#'   \code{psi_to_rho()}.
+#' @return A single number: \eqn{\psi}{psi} for \code{rho_to_psi()},
+#'   \eqn{\rho}{rho} for \code{psi_to_rho()}.
 #' @seealso \code{\link{paired_bounds}} for the feasible ranges of an entire
 #'   design.
 #' @export
@@ -67,7 +70,10 @@ psi_to_rho <- function(p1, p2, psi, name = "psi") {
 #' \code{design = "paired"}, shows which discordance (\code{psi.d},
 #' \code{psi.nd}) or correlation (\code{rho.d}, \code{rho.nd}) values are
 #' possible given the assumed sensitivities and specificities. The range is
-#' that of Stark et al. (2022, Eq. 10), \eqn{|c - e| \le \psi \le c + e - 2ce},
+#' that of Stark et al. (2022, Eq. 10),
+#' \eqn{|c - e| \le \psi \le c + e - 2ce}{|c - e| <= psi <= c + e - 2 * c * e}
+#' (\eqn{c}{c}, \eqn{e}{e}: comparator and experimental sensitivity or
+#' specificity),
 #' which corresponds to correlations between 0 and a maximum, see
 #' \code{\link{rho_to_psi}}. Values outside it are an error in
 #' \code{power.copr.comp.test()}. If no discordance or correlation is given

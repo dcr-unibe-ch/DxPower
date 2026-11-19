@@ -24,7 +24,10 @@ Before running \code{\link{power.copr.comp.test}} with
 \code{design = "paired"}, shows which discordance (\code{psi.d},
 \code{psi.nd}) or correlation (\code{rho.d}, \code{rho.nd}) values are
 possible given the assumed sensitivities and specificities. The range is
-that of Stark et al. (2022, Eq. 10), \eqn{|c - e| \le \psi \le c + e - 2ce},
+that of Stark et al. (2022, Eq. 10),
+\eqn{|c - e| \le \psi \le c + e - 2ce}{|c - e| <= psi <= c + e - 2 * c * e}
+(\eqn{c}{c}, \eqn{e}{e}: comparator and experimental sensitivity or
+specificity),
 which corresponds to correlations between 0 and a maximum, see
 \code{\link{rho_to_psi}}. Values outside it are an error in
 \code{power.copr.comp.test()}. If no discordance or correlation is given

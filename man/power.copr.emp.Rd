@@ -40,7 +40,7 @@ power.copr.emp(
 Named numeric vector with the empirical \code{overall} power and the
   empirical power of the sensitivity (\code{se}) and specificity
   (\code{sp}) test. The Monte Carlo standard error of each is at most
-  \eqn{0.5/\sqrt{n_{sim}}}.
+  \eqn{0.5/\sqrt{n_{sim}}}{0.5 / sqrt(n_sim)}.
 }
 \description{
 Monte Carlo estimate of the probability that both co-primary endpoints are
@@ -52,13 +52,17 @@ the asymptotic power.
 }
 \details{
 The number of true positives is drawn from
-\eqn{Bin(n_{dis}, Se_E)} and the number of true negatives from
-\eqn{Bin(n_{nondis}, Sp_E)}, independently, for all \code{n_sim}
-replications at once (no loop). For an observed proportion \eqn{\hat p} and
-null value \eqn{p_0} an endpoint is rejected if
-\deqn{\sqrt{n}\,(g(\hat p) - g(p_0)) / \sqrt{V_0} > z_{1-\alpha},}
-with \eqn{g} the identity (\code{"wald"}) or the logit (\code{"logit"}) and
-\eqn{V_0 = p_0(1-p_0)} or \eqn{1/(p_0(1-p_0))}. The Wald version uses the
+\eqn{\mathrm{Bin}(n_{dis}, Se_E)}{Bin(n_dis, se.e)} and the number of true
+negatives from \eqn{\mathrm{Bin}(n_{nondis}, Sp_E)}{Bin(n_nondis, sp.e)},
+independently, for all \code{n_sim}
+replications at once (no loop). For an observed proportion
+\eqn{\hat p}{p_hat} and null value \eqn{p_0}{p0} an endpoint is rejected if
+\deqn{\sqrt{n}\,(g(\hat p) - g(p_0)) / \sqrt{V_0} > z_{1-\alpha},}{sqrt(n) * (g(p_hat) - g(p0)) / sqrt(V0) > z_(1-alpha),}
+with \eqn{g}{g} the identity (\code{"wald"}) or the logit (\code{"logit"}).
+\eqn{V_0}{V0} is the null variance of \eqn{\sqrt{n}\,g(\hat p)}{sqrt(n) * g(p_hat)}:
+\eqn{V_0 = p_0(1-p_0)}{V0 = p0 * (1 - p0)} on the Wald scale and
+\eqn{V_0 = 1/(p_0(1-p_0))}{V0 = 1 / (p0 * (1 - p0))} on the logit scale
+(the delta-method variance of the logit of a proportion). The Wald version uses the
 variance under the null and therefore coincides with the Wilson score
 interval: rejecting is the same as the lower limit of
 \code{prop.test(x, n, conf.level = 1 - 2 * alpha, correct = FALSE)}

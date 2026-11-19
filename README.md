@@ -1,11 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-``` r
-devtools::load_all()
-#> ℹ Loading DxPower
-```
-
 # DxPower
 
 <!-- badges: start -->
@@ -41,7 +36,17 @@ hypotheses.
 
 ## Installation
 
-You can install the development version of DxPower from
+The package is available from
+[R-universe](https://dcr-unibe-ch.r-universe.dev), which provides
+prebuilt binaries and is generally faster than installing from source:
+
+``` r
+install.packages("DxPower",
+                 repos = c("https://dcr-unibe-ch.r-universe.dev",
+                           "https://cloud.r-project.org"))
+```
+
+Alternatively, you can install the development version of DxPower from
 [GitHub](https://github.com/) with:
 
 ``` r

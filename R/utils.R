@@ -1,5 +1,22 @@
-# Smallest integer N with pwr_fun(N) >= power, for a power function that is
-# non-decreasing in N: bracket by doubling, then bisect.
+#' Smallest sample size reaching a target power
+#'
+#' Finds the smallest integer total sample size \eqn{N}{N} with
+#' \code{pwr_fun(N) >= power}. The upper bound is found by doubling, then the
+#' solution by bisection, so \code{pwr_fun} must be non-decreasing in \eqn{N}{N}
+#' (for sawtooth power functions see \code{exact_n()}).
+#'
+#' @param pwr_fun Function of a single sample size \code{N} returning the power
+#'   (a number in \eqn{[0, 1]}{[0, 1]}).
+#' @param power Target power.
+#' @param n_low Lower end of the search interval. A warning is given, and
+#'   \code{n_low} returned, if the target is already reached there.
+#' @param n_high Initial upper end of the search interval, doubled until the
+#'   target is reached.
+#' @param n_max Largest upper end tried before stopping with an error (target
+#'   unreachable).
+#'
+#' @return The smallest integer \eqn{N}{N} with \code{pwr_fun(N) >= power}.
+#' @keywords internal
 find_n <- function(pwr_fun, power, n_low = 2, n_high = 1000, n_max = 1e7) {
   if (pwr_fun(n_low) >= power) {
     warning("Target power is already reached at n_low = ", n_low, ".")
@@ -168,6 +185,34 @@ check_num <- function(x, name, lower = -Inf, upper = Inf) {
   invisible(x)
 }
 
+# `x` must be a single positive whole number (a count such as n_dis or n_sim).
+check_count <- function(x, name) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x) ||
+      x < 1 || x != round(x)) {
+    stop(name, " must be a single positive integer.", call. = FALSE)
+  }
+  invisible(x)
+}
+
+# Warns if the effective one-sided level exceeds the conventional 0.025
+# (alpha = 0.05 with one.sided, or alpha > 0.05 with two.sided). Called once
+# from each exported function; silent for an invalid alpha (rejected by the
+# validation).
+warn_alpha <- function(alpha, alternative = c("one.sided", "two.sided")) {
+  alternative <- alternative[1]
+  if (!is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
+      alpha <= 0 || alpha >= 1) return(invisible(FALSE))
+  alpha_eff <- if (identical(alternative, "two.sided")) alpha / 2 else alpha
+  if (alpha_eff > 0.025 + 1e-12) {
+    warning("alpha = ", alpha, " with alternative = \"", alternative,
+            "\" is a one-sided level of ", alpha_eff, ", above the conventional ",
+            "0.025 (alpha = 0.025 one-sided, or 0.05 two-sided). Check that ",
+            "this is intended.", call. = FALSE)
+    return(invisible(TRUE))
+  }
+  invisible(FALSE)
+}
+
 # Exactly one of N and power is NULL (it is the one to calculate).
 check_one_of <- function(N, power) {
   if (sum(vapply(list(N, power), is.null, logical(1))) != 1) {
@@ -199,7 +244,8 @@ check_single <- function(se.e, se.min, sp.e, sp.min) {
 # Critical value of the standard normal test; `alpha` is the one-sided level
 # (or the two-sided level, which is halved).
 z_critical <- function(alpha, alternative) {
-  qnorm(1 - if (alternative == "one.sided") alpha else alpha / 2)
+  alpha_eff <- if (alternative == "one.sided") alpha else alpha / 2
+  qnorm(1 - alpha_eff)
 }
 
 # -----------------------------------------------------------------------------

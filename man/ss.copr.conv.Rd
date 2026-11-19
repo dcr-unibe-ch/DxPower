@@ -38,7 +38,10 @@ ss.copr.conv(
 
 \item{power_endpoint}{Power used for each endpoint in step 1. The default
 \code{1 - (1 - power) / 2} splits the allowed type II error equally over
-the two endpoints (0.9 for an overall power of 0.8, as in Stark et al.).}
+the two endpoints (0.9 for an overall power of 0.8, as in Stark et al.).
+It must lie in \code{[sqrt(power), 1)}: the endpoints are independent, so
+if both have power \code{power_endpoint} the overall power is its square,
+which reaches the target \code{power} only from \code{sqrt(power)} on.}
 }
 \value{
 An object of class \code{"power.htest"}, a list with the elements:
@@ -77,9 +80,17 @@ total sample size reaching the target overall power.
 The per-endpoint sample sizes use the same large-sample approximations as
 \code{\link{power.copr.test}} (Wald or logit scale), so
 \deqn{n = \left(\frac{z_{1-\alpha}\sqrt{V_0} + z_{1-\beta}\sqrt{V_A}}{d}
-\right)^2,}
-with \eqn{z_{1-\alpha}} the one-sided (or two-sided, \eqn{\alpha/2})
-critical value. The power at a given total sample size does not depend on
+\right)^2,}{n = ((z_(1-alpha) * sqrt(V0) + z_(1-beta) * sqrt(VA)) / d)^2,}
+with \eqn{z_{1-\alpha}}{z_(1-alpha)} the one-sided (or two-sided,
+\eqn{\alpha/2}{alpha/2}) critical value, \eqn{z_{1-\beta}}{z_(1-beta)} the
+normal quantile of the per-endpoint power \eqn{1-\beta}{1 - beta},
+\eqn{d}{d} the difference between the assumed value (\code{se.e} or
+\code{sp.e}) and the minimum (\code{se.min} or \code{sp.min}), and
+\eqn{V_0}{V0}, \eqn{V_A}{VA} the variances at the minimum and at the
+assumed value. On the Wald scale \eqn{d}{d} is the plain difference and
+\eqn{V = p(1-p)}{V = p * (1 - p)}; on the logit scale \eqn{d}{d} is the
+difference of the logits and \eqn{V = 1/(p(1-p))}{V = 1 / (p * (1 - p))}.
+The power at a given total sample size does not depend on
 how that sample size was chosen, so the power of a conventional design is
 obtained from \code{\link{power.copr.test}}.
 }

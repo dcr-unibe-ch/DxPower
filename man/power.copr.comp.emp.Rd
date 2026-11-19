@@ -11,7 +11,7 @@ power.copr.comp.emp(
   se.e,
   sp.c,
   sp.e,
-  alpha,
+  alpha = 0.025,
   delta.se = 0,
   delta.sp = 0,
   type.se = c("sup", "ni"),
@@ -71,14 +71,14 @@ sample of the same size, so the result is \emph{not} the same as
 statistic has the variance of a difference of two estimated proportions.
 }
 \details{
-For each endpoint, \eqn{\hat p_C \sim Bin(n, p_C)/n} and
-\eqn{\hat p_E \sim Bin(n, p_E)/n} are drawn independently (\code{n_dis}
+For each endpoint, \eqn{\hat p_C \sim \mathrm{Bin}(n, p_C)/n}{p_C_hat ~ Bin(n, p_C) / n} and
+\eqn{\hat p_E \sim \mathrm{Bin}(n, p_E)/n}{p_E_hat ~ Bin(n, p_E) / n} are drawn independently (\code{n_dis}
 per arm for the sensitivity, \code{n_nondis} per arm for the specificity)
 and the Wald statistic
-\eqn{(\hat p_E - \hat p_C + \delta) / \widehat{se} > z_{1-\alpha}} is
-evaluated, where \eqn{\delta} is the non-inferiority margin (0 for
-superiority) and \eqn{\widehat{se}} uses either the unpooled variance or the
-pooled proportion \eqn{(\hat p_C + \hat p_E)/2}. Replications with a zero
+\eqn{(\hat p_E - \hat p_C + \delta) / \widehat{\mathrm{se}} > z_{1-\alpha}}{(p_E_hat - p_C_hat + delta) / se_hat > z_(1-alpha)}
+is evaluated, where \eqn{\delta}{delta} is the non-inferiority margin (0 for
+superiority) and the standard error \eqn{\widehat{\mathrm{se}}}{se_hat} uses either the unpooled variance or the
+pooled proportion \eqn{(\hat p_C + \hat p_E)/2}{(p_C_hat + p_E_hat) / 2}. Replications with a zero
 standard error and a zero numerator count as not rejected.
 }
 \examples{

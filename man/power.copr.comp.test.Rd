@@ -29,7 +29,8 @@ power.copr.comp.test(
 )
 }
 \arguments{
-\item{N}{Total sample size, or \code{NULL} to calculate it.}
+\item{N}{Sample size, or \code{NULL} to calculate it. Participants per arm
+(unpaired) or in total (paired).}
 
 \item{power}{Desired overall power, or \code{NULL} to calculate it.}
 
@@ -52,11 +53,11 @@ the critical value uses \code{alpha / 2}.}
 \item{psi.d}{Discordance probability in the diseased (only for
 \code{design = "paired"}). At most one of \code{psi.d} and \code{rho.d} may
 be given. If neither is, the lower bound of Stark et al. (2022),
-\eqn{|se.c - se.e|}, is used and a message is printed. This is the smallest
+\code{abs(se.c - se.e)}, is used and a message is printed. This is the smallest
 possible discordance and gives the smallest sample size.}
 
 \item{psi.nd}{Discordance probability in the non-diseased. As \code{psi.d},
-with default \eqn{|sp.c - sp.e|}.}
+with default \code{abs(sp.c - sp.e)}.}
 
 \item{rho.d}{Correlation of the two tests' results in the diseased, as an
 alternative to \code{psi.d} (only for \code{design = "paired"}).}
@@ -100,9 +101,12 @@ above the target).}
 \value{
 An object of class \code{"power.htest"}, a list with the elements:
 \describe{
-  \item{n}{Total sample size.}
-  \item{n_dis}{Total number of diseased subjects.}
-  \item{n_nondis}{Total number of non-diseased subjects.}
+  \item{n}{Sample size \code{N}: per arm for the unpaired design, total
+    number of participants for the paired design.}
+  \item{n_dis}{Number of diseased subjects (per arm for the unpaired
+    design).}
+  \item{n_nondis}{Number of non-diseased subjects (per arm for the unpaired
+    design).}
   \item{prev}{Disease prevalence.}
   \item{sig.level}{Type I error level.}
   \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
@@ -143,30 +147,39 @@ type I error rate is controlled at level \code{alpha} without multiplicity
 adjustment.
 }
 \details{
-Let \eqn{\pi} denote the prevalence. Sensitivity is evaluated in the
-\eqn{N\pi} diseased and specificity in the \eqn{N(1-\pi)} non-diseased
-subjects. These subgroups are independent, so
-\deqn{Power_{overall} = Power_{Se} \times Power_{Sp}.}
+Let \eqn{\pi}{pi} denote the prevalence. Sensitivity is evaluated in the
+\eqn{N\pi}{N * pi} diseased and specificity in the
+\eqn{N(1-\pi)}{N * (1 - pi)} non-diseased
+subjects (per arm in the unpaired design, where \eqn{N}{N} is the size of each
+arm). These subgroups are independent, so
+\deqn{\mathrm{Power}_{\mathrm{Overall}} = \mathrm{Power}_{\mathrm{Se}} \times
+  \mathrm{Power}_{\mathrm{Sp}}.}{Power_Overall = Power_Se * Power_Sp.}
 
 \strong{Unpaired design.} Large-sample normal approximation for the
 difference of two independent proportions with variance
-\eqn{\theta_C(1-\theta_C) + \theta_E(1-\theta_E)}. For superiority the
+\eqn{\theta_C(1-\theta_C) + \theta_E(1-\theta_E)}{theta_C (1 - theta_C) + theta_E (1 - theta_E)}
+per subject, where \eqn{\theta_C}{theta_C} and \eqn{\theta_E}{theta_E} are
+the comparator and experimental sensitivity (or specificity), i.e.
+\code{se.c}, \code{se.e} (or \code{sp.c}, \code{sp.e}). For superiority the
 critical value uses the null variance chosen by \code{variance}. For
 non-inferiority the alternative variance is used with the margin
-\code{delta}. The sample size is the smallest integer \eqn{N} whose overall
+\code{delta}. The sample size is the smallest integer \eqn{N}{N} whose overall
 power reaches the target.
 
 \strong{Paired design.} Superiority uses the asymptotic formula of
 Stark et al. (2022, Miettinen). Non-inferiority uses the restricted maximum
 likelihood (score) test of Liu et al. (2002), with the variance of the
 estimated difference evaluated at the boundary of the null hypothesis.
-Both depend on the discordance \eqn{\psi}, which must lie in the interval of
-Stark et al. (2022, Eq. 10), \eqn{|d| \le \psi \le c + e - 2ce}. This
+Both depend on the discordance \eqn{\psi}{psi}, which must lie in the interval of
+Stark et al. (2022, Eq. 10),
+\eqn{|d| \le \psi \le c + e - 2ce}{|d| <= psi <= c + e - 2 * c * e}, where
+\eqn{c}{c} and \eqn{e}{e} are the comparator and experimental sensitivity
+(or specificity) and \eqn{d = e - c}{d = e - c} their difference. This
 corresponds to non-negative correlation between the two tests. Negative
-correlation is not considered. The sample size increases with \eqn{\psi}. If
-no discordance is specified, its lower bound \eqn{|d|} is used, as in the
+correlation is not considered. The sample size increases with \eqn{\psi}{psi}. If
+no discordance is specified, its lower bound \eqn{|d|}{|d|} is used, as in the
 worked example of Stark et al. As for the unpaired design, the sample size is
-the smallest integer \eqn{N} whose overall power reaches the target.
+the smallest integer \eqn{N}{N} whose overall power reaches the target.
 
 The dependence between the tests may be given as a correlation
 (\code{rho.d}, \code{rho.nd}, phi coefficient of the two binary results)
@@ -185,9 +198,9 @@ endpoint, that the Wald statistic with estimated variance exceeds the
 critical value (the same test as in \code{\link{power.copr.comp.emp}}).
 The \code{"null"} variance has no exact counterpart, so \code{"unpooled"}
 is used unless \code{variance = "pooled"} is given. The exact power is not
-monotone in \eqn{N}, so the sample size is found by a scan around the
+monotone in \eqn{N}{N}, so the sample size is found by a scan around the
 asymptotic solution (see \code{exact_rule} and \code{\link{power.copr.test}}).
-The sums neglect binomial tail probabilities below \eqn{10^{-12}}.
+The sums neglect binomial tail probabilities below \eqn{10^{-12}}{1e-12}.
 }
 \examples{
 # Unpaired design: sample size, then power at that sample size

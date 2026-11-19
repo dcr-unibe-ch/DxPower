@@ -10,15 +10,15 @@
 #' Overall power is therefore defined under an intersection–union
 #' testing (IUT) framework, meaning that both tests must be significant.
 #' Under this framework, the global Type I error rate is controlled
-#' at level \eqn{\alpha} without multiplicity adjustment.
+#' at level \eqn{\alpha}{alpha} without multiplicity adjustment.
 #'
 #' The calculation explicitly incorporates the assumed disease prevalence,
 #' which determines the expected number of diseased and non-diseased subjects.
 #'
 #' @details
-#' Let \eqn{\pi} denote the assumed disease prevalence. The study population
-#' is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
-#' (\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
+#' Let \eqn{\pi}{pi} denote the assumed disease prevalence. The study population
+#' is partitioned into diseased (\eqn{N_{Se} = N\pi}{N_Se = N * pi}) and non-diseased
+#' (\eqn{N_{Sp} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
 #'
 #' Endpoint-specific powers are derived from the asymptotic normal
 #' test statistics corresponding to the sample size formulas.
@@ -35,9 +35,8 @@
 #' Overall power is the probability that both test statistics exceed their
 #' critical values. Because the endpoints are independent, this is
 #'
-#' \deqn{
-#' Power_{overall} = Power_{Se} \times Power_{Sp}.
-#' }
+#' \deqn{\mathrm{Power}_{\mathrm{overall}} = \mathrm{Power}_{\mathrm{Se}} \times
+#'   \mathrm{Power}_{\mathrm{Sp}}.}{Power_overall = Power_Se * Power_Sp.}
 #'
 #' The function returns the achieved endpoint-specific powers and
 #' their joint probability for the specified total sample size.
@@ -65,7 +64,7 @@
 #'   individuals. Default \code{FALSE}.
 #' @author Maia Muresan (DCR Bern)
 #'
-#' @importFrom stats approx pnorm qnorm spline pbinom plogis qlogis
+#' @importFrom stats pnorm pbinom plogis qlogis
 #' @return An object of class \code{"power.htest"}, a list with the elements:
 #' \describe{
 #'   \item{n}{Total sample size.}
@@ -164,8 +163,12 @@ power_opt_bin <- function(N,
     # -----------------------------
     sc_se <- endpoint_scale(se.e, se.min, ci_method)
     sc_sp <- endpoint_scale(sp.e, sp.min, ci_method)
-    d_se <- sc_se$d;  v_se.min <- sc_se$v_min;  v_se.e <- sc_se$v_e
-    d_sp <- sc_sp$d;  v_sp.min <- sc_sp$v_min;  v_sp.e <- sc_sp$v_e
+    d_se     <- sc_se$d
+    v_se.min <- sc_se$v_min
+    v_se.e   <- sc_se$v_e
+    d_sp     <- sc_sp$d
+    v_sp.min <- sc_sp$v_min
+    v_sp.e   <- sc_sp$v_e
 
     # -----------------------------
     # Endpoint-specific power

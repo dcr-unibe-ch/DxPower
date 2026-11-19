@@ -24,30 +24,39 @@
 #' adjustment.
 #'
 #' @details
-#' Let \eqn{\pi} denote the prevalence. Sensitivity is evaluated in the
-#' \eqn{N\pi} diseased and specificity in the \eqn{N(1-\pi)} non-diseased
-#' subjects. These subgroups are independent, so
-#' \deqn{Power_{overall} = Power_{Se} \times Power_{Sp}.}
+#' Let \eqn{\pi}{pi} denote the prevalence. Sensitivity is evaluated in the
+#' \eqn{N\pi}{N * pi} diseased and specificity in the
+#' \eqn{N(1-\pi)}{N * (1 - pi)} non-diseased
+#' subjects (per arm in the unpaired design, where \eqn{N}{N} is the size of each
+#' arm). These subgroups are independent, so
+#' \deqn{\mathrm{Power}_{\mathrm{Overall}} = \mathrm{Power}_{\mathrm{Se}} \times
+#'   \mathrm{Power}_{\mathrm{Sp}}.}{Power_Overall = Power_Se * Power_Sp.}
 #'
 #' \strong{Unpaired design.} Large-sample normal approximation for the
 #' difference of two independent proportions with variance
-#' \eqn{\theta_C(1-\theta_C) + \theta_E(1-\theta_E)}. For superiority the
+#' \eqn{\theta_C(1-\theta_C) + \theta_E(1-\theta_E)}{theta_C (1 - theta_C) + theta_E (1 - theta_E)}
+#' per subject, where \eqn{\theta_C}{theta_C} and \eqn{\theta_E}{theta_E} are
+#' the comparator and experimental sensitivity (or specificity), i.e.
+#' \code{se.c}, \code{se.e} (or \code{sp.c}, \code{sp.e}). For superiority the
 #' critical value uses the null variance chosen by \code{variance}. For
 #' non-inferiority the alternative variance is used with the margin
-#' \code{delta}. The sample size is the smallest integer \eqn{N} whose overall
+#' \code{delta}. The sample size is the smallest integer \eqn{N}{N} whose overall
 #' power reaches the target.
 #'
 #' \strong{Paired design.} Superiority uses the asymptotic formula of
 #' Stark et al. (2022, Miettinen). Non-inferiority uses the restricted maximum
 #' likelihood (score) test of Liu et al. (2002), with the variance of the
 #' estimated difference evaluated at the boundary of the null hypothesis.
-#' Both depend on the discordance \eqn{\psi}, which must lie in the interval of
-#' Stark et al. (2022, Eq. 10), \eqn{|d| \le \psi \le c + e - 2ce}. This
+#' Both depend on the discordance \eqn{\psi}{psi}, which must lie in the interval of
+#' Stark et al. (2022, Eq. 10),
+#' \eqn{|d| \le \psi \le c + e - 2ce}{|d| <= psi <= c + e - 2 * c * e}, where
+#' \eqn{c}{c} and \eqn{e}{e} are the comparator and experimental sensitivity
+#' (or specificity) and \eqn{d = e - c}{d = e - c} their difference. This
 #' corresponds to non-negative correlation between the two tests. Negative
-#' correlation is not considered. The sample size increases with \eqn{\psi}. If
-#' no discordance is specified, its lower bound \eqn{|d|} is used, as in the
+#' correlation is not considered. The sample size increases with \eqn{\psi}{psi}. If
+#' no discordance is specified, its lower bound \eqn{|d|}{|d|} is used, as in the
 #' worked example of Stark et al. As for the unpaired design, the sample size is
-#' the smallest integer \eqn{N} whose overall power reaches the target.
+#' the smallest integer \eqn{N}{N} whose overall power reaches the target.
 #'
 #' The dependence between the tests may be given as a correlation
 #' (\code{rho.d}, \code{rho.nd}, phi coefficient of the two binary results)
@@ -66,9 +75,9 @@
 #' critical value (the same test as in \code{\link{power.copr.comp.emp}}).
 #' The \code{"null"} variance has no exact counterpart, so \code{"unpooled"}
 #' is used unless \code{variance = "pooled"} is given. The exact power is not
-#' monotone in \eqn{N}, so the sample size is found by a scan around the
+#' monotone in \eqn{N}{N}, so the sample size is found by a scan around the
 #' asymptotic solution (see \code{exact_rule} and \code{\link{power.copr.test}}).
-#' The sums neglect binomial tail probabilities below \eqn{10^{-12}}.
+#' The sums neglect binomial tail probabilities below \eqn{10^{-12}}{1e-12}.
 #'
 #' @references
 #' Stark, M., Hesse, M., Brannath, W., & Zapf, A. (2022).
@@ -82,7 +91,8 @@
 #' \emph{Statistics in Medicine}, 21(2), 231-245.
 #' \doi{10.1002/sim.1012}
 #'
-#' @param N Total sample size, or \code{NULL} to calculate it.
+#' @param N Sample size, or \code{NULL} to calculate it. Participants per arm
+#'   (unpaired) or in total (paired).
 #' @param power Desired overall power, or \code{NULL} to calculate it.
 #' @param prev Disease prevalence (0 < prev < 1).
 #' @param design \code{"unpaired"} (default) or \code{"paired"}.
@@ -107,10 +117,10 @@
 #' @param psi.d Discordance probability in the diseased (only for
 #'   \code{design = "paired"}). At most one of \code{psi.d} and \code{rho.d} may
 #'   be given. If neither is, the lower bound of Stark et al. (2022),
-#'   \eqn{|se.c - se.e|}, is used and a message is printed. This is the smallest
+#'   \code{abs(se.c - se.e)}, is used and a message is printed. This is the smallest
 #'   possible discordance and gives the smallest sample size.
 #' @param psi.nd Discordance probability in the non-diseased. As \code{psi.d},
-#'   with default \eqn{|sp.c - sp.e|}.
+#'   with default \code{abs(sp.c - sp.e)}.
 #' @param rho.d Correlation of the two tests' results in the diseased, as an
 #'   alternative to \code{psi.d} (only for \code{design = "paired"}).
 #' @param rho.nd Correlation of the two tests' results in the non-diseased, as
@@ -132,9 +142,12 @@
 #'
 #' @return An object of class \code{"power.htest"}, a list with the elements:
 #' \describe{
-#'   \item{n}{Total sample size.}
-#'   \item{n_dis}{Total number of diseased subjects.}
-#'   \item{n_nondis}{Total number of non-diseased subjects.}
+#'   \item{n}{Sample size \code{N}: per arm for the unpaired design, total
+#'     number of participants for the paired design.}
+#'   \item{n_dis}{Number of diseased subjects (per arm for the unpaired
+#'     design).}
+#'   \item{n_nondis}{Number of non-diseased subjects (per arm for the unpaired
+#'     design).}
 #'   \item{prev}{Disease prevalence.}
 #'   \item{sig.level}{Type I error level.}
 #'   \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
@@ -230,6 +243,7 @@ power.copr.comp.test <- function(N = NULL,
   check_one_of(N, power)
   check_inputs(N = N, power = power, prev = prev, alpha = alpha,
                probs = list(se.c = se.c, se.e = se.e, sp.c = sp.c, sp.e = sp.e))
+  warn_alpha(alpha, alternative)
   check_num(delta.se, "delta.se", -1, 1)
   check_num(delta.sp, "delta.sp", -1, 1)
 
@@ -263,30 +277,27 @@ power.copr.comp.test <- function(N = NULL,
                    type.se, type.sp)
   }
 
-  # endpoint powers (se, sp) at total sample size N; the exact version splits
-  # N into round(N * prev) diseased and the remaining non-diseased
-  endpoint_powers <- function(N, exact = FALSE) {
-    if (exact) {
-      n_dis <- round(N * prev)
-      n_nondis <- N - n_dis
-      return(c(se = unpaired_exact_endpoint_power(n_dis, alpha_eff, se.c, se.e,
-                                                  delta.se, type.se, variance),
-               sp = unpaired_exact_endpoint_power(n_nondis, alpha_eff, sp.c, sp.e,
-                                                  delta.sp, type.sp, variance)))
-    }
-    n_dis    <- N * prev
-    n_nondis <- N * (1 - prev)
-    if (design == "unpaired") {
-      c(se = unpaired_endpoint_power(n_dis, alpha_eff, se.c, se.e, delta.se,
-                                     type.se, variance),
-        sp = unpaired_endpoint_power(n_nondis, alpha_eff, sp.c, sp.e, delta.sp,
-                                     type.sp, variance))
+  # power of one endpoint with n subjects in its subgroup
+  endpoint_power <- function(n, p.c, p.e, delta, type, psi, use_exact) {
+    if (use_exact) {
+      unpaired_exact_endpoint_power(n, alpha_eff, p.c, p.e, delta, type, variance)
+    } else if (design == "unpaired") {
+      unpaired_endpoint_power(n, alpha_eff, p.c, p.e, delta, type, variance)
     } else {
-      c(se = paired_endpoint_power(n_dis, alpha_eff, se.c, se.e, psi.d, delta.se,
-                                   type.se),
-        sp = paired_endpoint_power(n_nondis, alpha_eff, sp.c, sp.e, psi.nd,
-                                   delta.sp, type.sp))
+      paired_endpoint_power(n, alpha_eff, p.c, p.e, psi, delta, type)
     }
+  }
+
+  # subgroup sizes at total N; exact uses round(N * prev) diseased and the
+  # remaining non-diseased
+  n_diseased <- function(N, use_exact) if (use_exact) round(N * prev) else N * prev
+
+  # endpoint powers (se, sp) at total sample size N (asymptotic unless
+  # use_exact; the asymptotic version is also the starting point of exact_n())
+  endpoint_powers <- function(N, use_exact = FALSE) {
+    n_dis <- n_diseased(N, use_exact)
+    c(se = endpoint_power(n_dis,     se.c, se.e, delta.se, type.se, psi.d, use_exact),
+      sp = endpoint_power(N - n_dis, sp.c, sp.e, delta.sp, type.sp, psi.nd, use_exact))
   }
 
   # -----------------------------
@@ -303,7 +314,7 @@ power.copr.comp.test <- function(N = NULL,
   }
 
   pw <- endpoint_powers(N, exact)
-  n_dis <- if (exact) round(N * prev) else N * prev
+  n_dis <- n_diseased(N, exact)
 
   # -----------------------------
   # Return structured object
@@ -405,8 +416,9 @@ unpaired_endpoint_power <- function(n, alpha, c, e, delta, type, variance) {
   margin  <- if (type == "ni") delta else 0
 
   VA <- v(c, e)
+  p.bar <- (c + e) / 2
   V0 <- switch(variance,
-    pooled   = {p.bar <- (c + e) / 2; 2 * p.bar * (1 - p.bar)},
+    pooled   = 2 * p.bar * (1 - p.bar),
     unpooled = VA,
     null     = if (type == "sup") v(c, c) else VA)
 
@@ -464,9 +476,12 @@ unpaired_exact_endpoint_power <- function(n, alpha, c, e, delta, type, variance)
   z <- qnorm(1 - alpha)
   margin <- if (type == "ni") delta else 0
   rng <- function(p) qbinom(1e-12, n, p):qbinom(1 - 1e-12, n, p)
-  x <- rng(c); y <- rng(e)
-  px <- dbinom(x, n, c); py <- dbinom(y, n, e)
-  xh <- x / n; yh <- y / n
+  x <- rng(c)
+  y <- rng(e)
+  px <- dbinom(x, n, c)
+  py <- dbinom(y, n, e)
+  xh <- x / n
+  yh <- y / n
 
   # rows: y, columns: x
   num <- outer(yh, xh, "-") + margin

@@ -34,4 +34,15 @@ test_that("conventional design is never smaller than, and overpowers, the optima
 test_that("invalid power_endpoint is rejected", {
   expect_error(do.call(ss.copr.conv, c(list(power = 0.8, power_endpoint = 0.7), a)),
                "power_endpoint")
+  # between power and sqrt(power): the product of two endpoints would be < power
+  expect_error(do.call(ss.copr.conv, c(list(power = 0.8, power_endpoint = 0.85), a)),
+               "sqrt\\(power\\)")
+  expect_error(do.call(ss.copr.conv, c(list(power = 0.8, power_endpoint = 1), a)),
+               "power_endpoint")
+  # sqrt(power) itself is allowed, and so is the default for any power
+  expect_no_error(do.call(ss.copr.conv,
+                          c(list(power = 0.8, power_endpoint = sqrt(0.8)), a)))
+  for (p in c(0.5, 0.8, 0.9, 0.95)) {
+    expect_gte(1 - (1 - p) / 2, sqrt(p))
+  }
 })

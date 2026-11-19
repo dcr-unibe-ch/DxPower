@@ -13,10 +13,7 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
-```
-
-```{r}
-devtools::load_all()
+library(DxPower)
 ```
 
 # DxPower
@@ -50,7 +47,13 @@ The methodology is based on asymptotic normal approximations and an intersection
 
 ## Installation {#installation}
 
-You can install the development version of DxPower from [GitHub](https://github.com/) with:
+The package is available from [R-universe](https://dcr-unibe-ch.r-universe.dev):
+
+``` r
+install.packages("DxPower", repos = c("https://dcr-unibe-ch.r-universe.dev", "https://cloud.r-project.org"))
+```
+
+Alternatively, you can install the development version of DxPower from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
