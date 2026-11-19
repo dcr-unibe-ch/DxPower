@@ -4,6 +4,7 @@
 # DxPower
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The goal of DxPower is to provide functions for power and sample size
@@ -37,13 +38,10 @@ hypotheses.
 ## Installation
 
 The package is available from
-[R-universe](https://dcr-unibe-ch.r-universe.dev), which provides
-prebuilt binaries and is generally faster than installing from source:
+[R-universe](https://dcr-unibe-ch.r-universe.dev):
 
 ``` r
-install.packages("DxPower",
-                 repos = c("https://dcr-unibe-ch.r-universe.dev",
-                           "https://cloud.r-project.org"))
+install.packages("DxPower", repos = c("https://dcr-unibe-ch.r-universe.dev", "https://cloud.r-project.org"))
 ```
 
 Alternatively, you can install the development version of DxPower from
@@ -98,19 +96,15 @@ We consider one-sided superiority hypotheses:
 
 For sensitivity:
 
-$$
-H_{0,Se}: Se \le Se_0
+$$H_{0,Se}: Se \le Se_0
 \quad\text{vs}\quad
-H_{1,Se}: Se > Se_0
-$$
+H_{1,Se}: Se > Se_0$$
 
 For specificity:
 
-$$
-H_{0,Sp}: Sp \le Sp_0
+$$H_{0,Sp}: Sp \le Sp_0
 \quad\text{vs}\quad
-H_{1,Sp}: Sp > Sp_0
-$$
+H_{1,Sp}: Sp > Sp_0$$
 
 Each endpoint is tested at level $\alpha = 0.025$.
 
@@ -140,13 +134,9 @@ intersection–union test (IUT) is applied.
 
 Assuming asymptotic independence:
 
-$$
-Power_{Se} \times Power_{Sp}=Power_{overall} 
-$$
+$$Power_{Se} \times Power_{Sp}=Power_{overall} $$
 
-$$
-(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})
-$$
+$$(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})$$
 
 Individual endpoint powers are therefore typically larger than the
 target overall power.
@@ -155,13 +145,13 @@ target overall power.
 
 ### Overview
 
-| Function                 | Purpose                                                              |
-|--------------------------|----------------------------------------------------------------------|
-| `power.copr.test()`      | Sample size (`power` given) or power (`N` given), single-test design |
-| `power.copr.comp.test()` | Sample size or power, comparative unpaired or paired design          |
-| `ss.copr.conv()`         | Conventional per-endpoint sample size, single-test design            |
-| `power.copr.emp()`       | Monte Carlo power, single-test design                                |
-| `power.copr.comp.emp()`  | Monte Carlo power, unpaired comparative design                       |
+| Function | Purpose |
+|----|----|
+| `power.copr.test()` | Sample size (`power` given) or power (`N` given), single-test design |
+| `power.copr.comp.test()` | Sample size or power, comparative unpaired or paired design |
+| `ss.copr.conv()` | Conventional per-endpoint sample size, single-test design |
+| `power.copr.emp()` | Monte Carlo power, single-test design |
+| `power.copr.comp.emp()` | Monte Carlo power, unpaired comparative design |
 
 All sample size and power functions return an object of class
 `power.htest`.
@@ -176,27 +166,23 @@ diagnostic accuracy study with co-primary endpoints.
 
 For sensitivity:
 
-$$
-N_{Se} =
+$$N_{Se} =
 \frac{\left(
 z_{1-\alpha} \sqrt{Se_0(1-Se_0)}
 +
 z_{1-\beta_{Se}} \sqrt{Se_1(1-Se_1)}
 \right)^2}
-{\pi \times (Se_1 - Se_0)^2}
-$$
+{\pi \times (Se_1 - Se_0)^2}$$
 
 For specificity:
 
-$$
-N_{Sp} =
+$$N_{Sp} =
 \frac{\left(
 z_{1-\alpha} \sqrt{Sp_0(1-Sp_0)}
 +
 z_{1-\beta_{Sp}} \sqrt{Sp_1(1-Sp_1)}
 \right)^2}
-{(1-\pi) \times (Sp_1 - Sp_0)^2}
-$$
+{(1-\pi) \times (Sp_1 - Sp_0)^2}$$
 
 where:
 
@@ -213,20 +199,15 @@ The study must satisfy two conditions simultaneously:
 
 1.  The overall power constraint
 
-$$
-(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})
-$$
+$$(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})$$
 
-2.  Equal total sample size requirement $$
-    N_{Se} = N_{Sp}
-    $$
+2.  Equal total sample size requirement
+    $$N_{Se} = N_{Sp}$$
 
 Since the two endpoint-specific powers are linked through the overall
 power constraint, only one free parameter remains (e.g.,$\beta_{Se}$).
 
-$$
-\beta_{Se} = 1- \frac{1-\beta_{Overall}}{1-\beta_{Sp}}
-$$
+$$\beta_{Se} = 1- \frac{1-\beta_{Overall}}{1-\beta_{Sp}}$$
 
 The algorithm therefore:
 
@@ -234,9 +215,7 @@ The algorithm therefore:
 - Substitutes into the two sample size formulas
 - Numerically solves for the value of $\beta_{Se}$ such that
 
-$$
-N_{Se}(\beta_{Se}) = N_{Sp}(\beta_{Sp})
-$$
+$$N_{Se}(\beta_{Se}) = N_{Sp}(\beta_{Sp})$$
 
 This ensures that:
 
@@ -257,37 +236,25 @@ diagnostic accuracy study with co-primary endpoints.
 
 Given total $N$ and true prevalence $\pi$:
 
-$$
-N_{Se} = N_{total} \cdot \pi
+$$N_{Se} = N_{total} \cdot \pi
 \quad\text{and}\quad
-N_{Sp} = N_{total} \cdot (1 - \pi)
-$$
+N_{Sp} = N_{total} \cdot (1 - \pi)$$
 
 For sensitivity:
 
-$$
-z_{\beta_{Se}} = \frac{\sqrt{N_{Se}}|Se_1 - Se_0|  - z_{1-\alpha}\sqrt{Se_0(1-Se_0)}}{\sqrt{Se_1(1-Se_1)}}
-$$
+$$z_{\beta_{Se}} = \frac{\sqrt{N_{Se}}|Se_1 - Se_0|  - z_{1-\alpha}\sqrt{Se_0(1-Se_0)}}{\sqrt{Se_1(1-Se_1)}}$$
 
-$$
-Power_{Se} = \Phi(z_{\beta_{Se}})
-$$
+$$Power_{Se} = \Phi(z_{\beta_{Se}})$$
 
 Similar for Specificity:
 
-$$
-z_{\beta_{Sp}} = \frac{\sqrt{N_{Sp}}|Sp_1 - Sp_0| - z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}}{\sqrt{Sp_1(1-Sp_1)}}
-$$
+$$z_{\beta_{Sp}} = \frac{\sqrt{N_{Sp}}|Sp_1 - Sp_0| - z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}}{\sqrt{Sp_1(1-Sp_1)}}$$
 
-$$
-Power_{Sp} = \Phi(z_{\beta_{Sp}})
-$$
+$$Power_{Sp} = \Phi(z_{\beta_{Sp}})$$
 
 The resulting overall power is
 
-$$
-Power_{overall} = Power_{Se} \times Power_{Sp}
-$$
+$$Power_{overall} = Power_{Se} \times Power_{Sp}$$
 
 **Remark**  
 Sample size determination and power evaluation rely on the same
@@ -425,6 +392,8 @@ power.copr.comp.test(
 #>    target_power = 0.8
 #>         type.se = sup
 #>         type.sp = sup
+#>        variance = null
+#>           exact = FALSE
 #> 
 #> NOTE: n is the total sample size.
 ```
