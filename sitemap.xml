@@ -5,12 +5,14 @@
 <url><loc>/index.html</loc></url>
 <url><loc>/news/index.html</loc></url>
 <url><loc>/reference/DxPower-package.html</loc></url>
+<url><loc>/reference/find_n.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
-<url><loc>/reference/paired_power_opt_bin.html</loc></url>
-<url><loc>/reference/paired_ss_opt_bin.html</loc></url>
-<url><loc>/reference/power_opt_bin.html</loc></url>
-<url><loc>/reference/ss_opt_bin.html</loc></url>
-<url><loc>/reference/unpaired_power_opt_bin.html</loc></url>
-<url><loc>/reference/unpaired_ss_opt_bin.html</loc></url>
+<url><loc>/reference/paired_bounds.html</loc></url>
+<url><loc>/reference/power.copr.comp.emp.html</loc></url>
+<url><loc>/reference/power.copr.comp.test.html</loc></url>
+<url><loc>/reference/power.copr.emp.html</loc></url>
+<url><loc>/reference/power.copr.test.html</loc></url>
+<url><loc>/reference/rho_to_psi.html</loc></url>
+<url><loc>/reference/ss.copr.conv.html</loc></url>
 </urlset>
 

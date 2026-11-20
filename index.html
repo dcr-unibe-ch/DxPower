@@ -58,18 +58,13 @@
 
       </header><div class="row">
   <div class="contents col-md-9">
-
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">load_all</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; ℹ Loading DxPower</span></span>
-<span><span class="co">#&gt; Warning: le package 'testthat' a été compilé avec la version R 4.5.2</span></span></code></pre></div>
 <div class="section level1">
 <div class="page-header"><h1 id="dxpower">DxPower<a class="anchor" aria-label="anchor" href="#dxpower"></a>
 </h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
 <p>The goal of DxPower is to provide functions for power and sample size calculation in confirmatory diagnostic accuracy trials.</p>
-<p>The methodology is based on asymptotic normal approximations and an intersection–union testing framework, where both co-primary endpoints (i.e.sensitivity and specificity) must reject their respective null hypotheses.</p>
+<p>The methodology is based on asymptotic normal approximations and an intersection–union testing framework, where both co-primary endpoints (i.e. sensitivity and specificity) must reject their respective null hypotheses.</p>
 <div class="section level2">
 <h2 id="contents">Contents<a class="anchor" aria-label="anchor" href="#contents"></a>
 </h2>
@@ -88,8 +83,12 @@
 <li>
 <a href="#functions">Functions</a>
 <ul>
-<li><a href="#ss_opt_bin"><code>ss_opt_bin()</code></a></li>
-<li><a href="#power_opt_bin"><code>power_opt_bin()</code></a></li>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#sample-size">Sample size calculation</a></li>
+<li><a href="#power-calculation">Power calculation</a></li>
+<li><a href="#comparative-designs">Comparative designs</a></li>
+<li><a href="#conventional">Conventional sample size</a></li>
+<li><a href="#empirical">Empirical (simulated) power</a></li>
 </ul>
 </li>
 <li><a href="#example">Example</a></li>
@@ -99,10 +98,13 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of DxPower from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
+<p>The package is available from <a href="https://dcr-unibe-ch.r-universe.dev" class="external-link">R-universe</a>:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"DxPower"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://dcr-unibe-ch.r-universe.dev"</span>, <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Alternatively, you can install the development version of DxPower from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("devtools")</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"CTU-Bern/DxPower"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/install-deprecated.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"CTU-Bern/DxPower"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="current-implementation-status">Current Implementation Status<a class="anchor" aria-label="anchor" href="#current-implementation-status"></a>
@@ -110,11 +112,11 @@
 <p>The current version implements sample size determination and power evaluation for confirmatory diagnostic accuracy studies with:</p>
 <ul>
 <li><p>Binary endpoints (sensitivity and specificity)</p></li>
-<li><p>One-sided superiority hypotheses</p></li>
+<li><p>Single-test designs (superiority against fixed null values) and comparative designs (unpaired and paired, superiority or non-inferiority)</p></li>
 <li><p>Co-primary testing using an intersection–union framework</p></li>
-<li><p>Wald-type asymptotic normal approximations</p></li>
+<li><p>Wald-type (or logit) asymptotic normal approximations, and exact binomial power for the single-test and the unpaired comparative design</p></li>
 </ul>
-<p>Extensions to non-inferiority settings, continuous endpoints, and more general co-primary objectives are planned.</p>
+<p>Extensions to continuous endpoints and more general co-primary objectives are planned.</p>
 </div>
 <div class="section level2">
 <h2 id="statistical-framework">Statistical Framework<a class="anchor" aria-label="anchor" href="#statistical-framework"></a>
@@ -134,7 +136,7 @@
 </li>
 </ul>
 <p>The number of diseased (cases) and non-diseased (control) subjects is:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mi>N</mi><mi>π</mi><mo>,</mo><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>π</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">N_{Se}=N\pi,  N_{Sp}=N(1-\pi)</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mi>N</mi><mi>π</mi><mo>,</mo><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>π</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N_{Se}=N\pi,  N_{Sp}=N(1-\pi)</annotation></semantics></math></p>
 <p>Diseased and non-diseased subjects form disjoint subgroups. Under standard binomial sampling assumptions, the corresponding estimators of sensitivity and specificity are asymptotically independent.</p>
 </div>
 <div class="section level3">
@@ -142,17 +144,13 @@
 </h3>
 <p>We consider one-sided superiority hypotheses:</p>
 <p>For sensitivity:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mrow><mn>0</mn><mo>,</mo><mi>S</mi><mi>e</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>e</mi><mo>≤</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mspace width="1.0em"></mspace><mtext mathvariant="normal">vs</mtext><mspace width="1.0em"></mspace><msub><mi>H</mi><mrow><mn>1</mn><mo>,</mo><mi>S</mi><mi>e</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>e</mi><mo>&gt;</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">
-H_{0,Se}: Se \le Se_0
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mrow><mn>0</mn><mo>,</mo><mi>S</mi><mi>e</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>e</mi><mo>≤</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mspace width="1.0em"></mspace><mtext mathvariant="normal">vs</mtext><mspace width="1.0em"></mspace><msub><mi>H</mi><mrow><mn>1</mn><mo>,</mo><mi>S</mi><mi>e</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>e</mi><mo>&gt;</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">H_{0,Se}: Se \le Se_0
 \quad\text{vs}\quad
-H_{1,Se}: Se &gt; Se_0
-</annotation></semantics></math></p>
+H_{1,Se}: Se &gt; Se_0</annotation></semantics></math></p>
 <p>For specificity:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mrow><mn>0</mn><mo>,</mo><mi>S</mi><mi>p</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>p</mi><mo>≤</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mspace width="1.0em"></mspace><mtext mathvariant="normal">vs</mtext><mspace width="1.0em"></mspace><msub><mi>H</mi><mrow><mn>1</mn><mo>,</mo><mi>S</mi><mi>p</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>p</mi><mo>&gt;</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">
-H_{0,Sp}: Sp \le Sp_0
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mrow><mn>0</mn><mo>,</mo><mi>S</mi><mi>p</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>p</mi><mo>≤</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mspace width="1.0em"></mspace><mtext mathvariant="normal">vs</mtext><mspace width="1.0em"></mspace><msub><mi>H</mi><mrow><mn>1</mn><mo>,</mo><mi>S</mi><mi>p</mi></mrow></msub><mo>:</mo><mi>S</mi><mi>p</mi><mo>&gt;</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">H_{0,Sp}: Sp \le Sp_0
 \quad\text{vs}\quad
-H_{1,Sp}: Sp &gt; Sp_0
-</annotation></semantics></math></p>
+H_{1,Sp}: Sp &gt; Sp_0</annotation></semantics></math></p>
 <p>Each endpoint is tested at level <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>=</mo><mn>0.025</mn></mrow><annotation encoding="application/x-tex">\alpha = 0.025</annotation></semantics></math>.</p>
 <p>Because both null hypotheses must be rejected to declare overall success, an intersection–union test (IUT) framework is used. Under the global null hypothesis the overall Type I error rate is controlled at level <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>α</mi><annotation encoding="application/x-tex">\alpha</annotation></semantics></math> without multiplicity adjustment.</p>
 </div>
@@ -160,12 +158,12 @@ H_{1,Sp}: Sp &gt; Sp_0
 <h3 id="test-statistic-and-approximation">Test Statistic and Approximation<a class="anchor" aria-label="anchor" href="#test-statistic-and-approximation"></a>
 </h3>
 <p>Both endpoints are evaluated using a Wald-type normal approximation. Under large-sample theory:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mrow><mi>S</mi><mi>e</mi></mrow><mo accent="true">̂</mo></mover><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><mi>e</mi><mo>,</mo><mspace width="0.278em"></mspace><mfrac><mrow><mi>S</mi><mi>e</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><mi>e</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mover><mrow><mi>S</mi><mi>p</mi></mrow><mo accent="true">̂</mo></mover><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><mi>p</mi><mo>,</mo><mspace width="0.278em"></mspace><mfrac><mrow><mi>S</mi><mi>p</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><mi>p</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\hat{Se} \sim N\left( Se,\; \frac{Se(1-Se)}{N_{Se}} \right),\hat{Sp} \sim N\left( Sp,\; \frac{Sp(1-Sp)}{N_{Sp}} \right) </annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mrow><mi>S</mi><mi>e</mi></mrow><mo accent="true">̂</mo></mover><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><mi>e</mi><mo>,</mo><mspace width="0.278em"></mspace><mfrac><mrow><mi>S</mi><mi>e</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><mi>e</mi><mo stretchy="false" form="postfix">)</mo></mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mover><mrow><mi>S</mi><mi>p</mi></mrow><mo accent="true">̂</mo></mover><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><mi>p</mi><mo>,</mo><mspace width="0.278em"></mspace><mfrac><mrow><mi>S</mi><mi>p</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><mi>p</mi><mo stretchy="false" form="postfix">)</mo></mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\hat{Se} \sim N\left( Se,\; \frac{Se(1-Se)}{N_{Se}} \right),\hat{Sp} \sim N\left( Sp,\; \frac{Sp(1-Sp)}{N_{Sp}} \right) </annotation></semantics></math></p>
 <p>The sample size formula uses the classical normal approximation with:</p>
 <ul>
-<li>Variance under the null: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mi>a</mi><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mi>V</mi><mi>a</mi><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">Var(Se_0)=Se_0(1-Se_0), Var(Sp_0)=Sp_0(1-Sp_0)</annotation></semantics></math>
+<li>Variance under the null: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mi>a</mi><mi>r</mi><mo stretchy="false" form="prefix">(</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mi>V</mi><mi>a</mi><mi>r</mi><mo stretchy="false" form="prefix">(</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">Var(Se_0)=Se_0(1-Se_0), Var(Sp_0)=Sp_0(1-Sp_0)</annotation></semantics></math>
 </li>
-<li>Variance under the alternative: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mi>a</mi><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo><mi>V</mi><mi>a</mi><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">Var(Se_1)=Se_1(1-Se_1), Var(Sp_1)=Sp_1(1-Sp_1)</annotation></semantics></math>
+<li>Variance under the alternative: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mi>a</mi><mi>r</mi><mo stretchy="false" form="prefix">(</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mi>V</mi><mi>a</mi><mi>r</mi><mo stretchy="false" form="prefix">(</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">Var(Se_1)=Se_1(1-Se_1), Var(Sp_1)=Sp_1(1-Sp_1)</annotation></semantics></math>
 </li>
 </ul>
 </div>
@@ -174,12 +172,8 @@ H_{1,Sp}: Sp &gt; Sp_0
 </h3>
 <p>Because both endpoints must reject the null hypothesis, an intersection–union test (IUT) is applied.</p>
 <p>Assuming asymptotic independence:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>×</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>o</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub></mrow><annotation encoding="application/x-tex">
-Power_{Se} \times Power_{Sp}=Power_{overall}
-</annotation></semantics></math></p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>×</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>O</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
-(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>×</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>o</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub></mrow><annotation encoding="application/x-tex">Power_{Se} \times Power_{Sp}=Power_{overall} </annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>O</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})</annotation></semantics></math></p>
 <p>Individual endpoint powers are therefore typically larger than the target overall power.</p>
 </div>
 </div>
@@ -187,33 +181,65 @@ Power_{Se} \times Power_{Sp}=Power_{overall}
 <h2 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a>
 </h2>
 <div class="section level3">
-<h3 id="ss_opt_bin">
-<code>ss_opt_bin()</code><a class="anchor" aria-label="anchor" href="#ss_opt_bin"></a>
+<h3 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h3>
-<p>Computes the required total sample size for a desired overall power and true prevalence <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>π</mi><annotation encoding="application/x-tex">\pi</annotation></semantics></math> in a confirmatory diagnostic accuracy study with co-primary endpoints.</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code><a href="reference/power.copr.test.html">power.copr.test()</a></code></td>
+<td>Sample size (<code>power</code> given) or power (<code>N</code> given), single-test design</td>
+</tr>
+<tr>
+<td><code><a href="reference/power.copr.comp.test.html">power.copr.comp.test()</a></code></td>
+<td>Sample size or power, comparative unpaired or paired design</td>
+</tr>
+<tr>
+<td><code><a href="reference/ss.copr.conv.html">ss.copr.conv()</a></code></td>
+<td>Conventional per-endpoint sample size, single-test design</td>
+</tr>
+<tr>
+<td><code><a href="reference/power.copr.emp.html">power.copr.emp()</a></code></td>
+<td>Monte Carlo power, single-test design</td>
+</tr>
+<tr>
+<td><code><a href="reference/power.copr.comp.emp.html">power.copr.comp.emp()</a></code></td>
+<td>Monte Carlo power, unpaired comparative design</td>
+</tr>
+</tbody>
+</table>
+<p>All sample size and power functions return an object of class <code>power.htest</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="sample-size-calculation">Sample size calculation<a class="anchor" aria-label="anchor" href="#sample-size-calculation"></a>
+</h3>
+<p><code>power.copr.test(power = ...)</code> computes the required total sample size for a desired overall power and true prevalence <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>π</mi><annotation encoding="application/x-tex">\pi</annotation></semantics></math> in a confirmatory diagnostic accuracy study with co-primary endpoints.</p>
 <div class="section level4">
 <h4 id="sample-size-formula">Sample Size Formula<a class="anchor" aria-label="anchor" href="#sample-size-formula"></a>
 </h4>
 <p>For sensitivity:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mfrac><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mrow><mi>π</mi><mo>×</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup></mrow></mfrac></mrow><annotation encoding="application/x-tex">
-N_{Se} =
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mfrac><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mrow><mi>π</mi><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></mfrac></mrow><annotation encoding="application/x-tex">N_{Se} =
 \frac{\left(
 z_{1-\alpha} \sqrt{Se_0(1-Se_0)}
 +
 z_{1-\beta_{Se}} \sqrt{Se_1(1-Se_1)}
 \right)^2}
-{\pi \times (Se_1 - Se_0)^2}
-</annotation></semantics></math></p>
+{\pi \times (Se_1 - Se_0)^2}</annotation></semantics></math></p>
 <p>For specificity:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mfrac><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mrow><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>π</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>×</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup></mrow></mfrac></mrow><annotation encoding="application/x-tex">
-N_{Sp} =
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mfrac><msup><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt><mo stretchy="true" form="postfix">)</mo></mrow><mn>2</mn></msup><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>π</mi><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></mfrac></mrow><annotation encoding="application/x-tex">N_{Sp} =
 \frac{\left(
 z_{1-\alpha} \sqrt{Sp_0(1-Sp_0)}
 +
 z_{1-\beta_{Sp}} \sqrt{Sp_1(1-Sp_1)}
 \right)^2}
-{(1-\pi) \times (Sp_1 - Sp_0)^2}
-</annotation></semantics></math></p>
+{(1-\pi) \times (Sp_1 - Sp_0)^2}</annotation></semantics></math></p>
 <p>where:</p>
 <ul>
 <li>
@@ -238,19 +264,13 @@ z_{1-\beta_{Sp}} \sqrt{Sp_1(1-Sp_1)}
 <ol style="list-style-type: decimal">
 <li>The overall power constraint</li>
 </ol>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>×</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>O</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
-(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>O</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1-\beta_{Se}) \times (1-\beta_{Sp})=(1-\beta_{Overall})</annotation></semantics></math></p>
 <ol start="2" style="list-style-type: decimal">
-<li>Equal total sample size requirement <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow><annotation encoding="application/x-tex">
-N_{Se} = N_{Sp}
-</annotation></semantics></math>
+<li>Equal total sample size requirement <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow><annotation encoding="application/x-tex">N_{Se} = N_{Sp}</annotation></semantics></math>
 </li>
 </ol>
 <p>Since the two endpoint-specific powers are linked through the overall power constraint, only one free parameter remains (e.g.,<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><annotation encoding="application/x-tex">\beta_{Se}</annotation></semantics></math>).</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>O</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub></mrow><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow></mfrac></mrow><annotation encoding="application/x-tex">
-\beta_{Se} = 1- \frac{1-\beta_{Overall}}{1-\beta_{Sp}}
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>O</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub></mrow><mrow><mn>1</mn><mo>−</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow></mfrac></mrow><annotation encoding="application/x-tex">\beta_{Se} = 1- \frac{1-\beta_{Overall}}{1-\beta_{Sp}}</annotation></semantics></math></p>
 <p>The algorithm therefore:</p>
 <ul>
 <li>Express <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><annotation encoding="application/x-tex">\beta_{Sp}</annotation></semantics></math> as a function of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><annotation encoding="application/x-tex">\beta_{Se}</annotation></semantics></math>
@@ -258,9 +278,7 @@ N_{Se} = N_{Sp}
 <li>Substitutes into the two sample size formulas</li>
 <li>Numerically solves for the value of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><annotation encoding="application/x-tex">\beta_{Se}</annotation></semantics></math> such that</li>
 </ul>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
-N_{Se}(\beta_{Se}) = N_{Sp}(\beta_{Sp})
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N_{Se}(\beta_{Se}) = N_{Sp}(\beta_{Sp})</annotation></semantics></math></p>
 <p>This ensures that:</p>
 <ul>
 <li>Both endpoints require the same total sample size</li>
@@ -271,40 +289,49 @@ N_{Se}(\beta_{Se}) = N_{Sp}(\beta_{Sp})
 </div>
 </div>
 <div class="section level3">
-<h3 id="power_opt_bin">
-<code>power_opt_bin()</code><a class="anchor" aria-label="anchor" href="#power_opt_bin"></a>
+<h3 id="power-calculation">Power calculation<a class="anchor" aria-label="anchor" href="#power-calculation"></a>
 </h3>
-<p>Computes the achieved overall power for a fixed total sample size and true prevalence <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>π</mi><annotation encoding="application/x-tex">\pi</annotation></semantics></math> in a confirmatory diagnostic accuracy study with co-primary endpoints.</p>
+<p><code>power.copr.test(N = ...)</code> computes the achieved overall power for a fixed total sample size and true prevalence <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>π</mi><annotation encoding="application/x-tex">\pi</annotation></semantics></math> in a confirmatory diagnostic accuracy study with co-primary endpoints.</p>
 <div class="section level4">
 <h4 id="endpoint---specific-power-formula">Endpoint - Specific Power Formula<a class="anchor" aria-label="anchor" href="#endpoint---specific-power-formula"></a>
 </h4>
 <p>Given total <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> and true prevalence <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>π</mi><annotation encoding="application/x-tex">\pi</annotation></semantics></math>:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><msub><mi>N</mi><mrow><mi>t</mi><mi>o</mi><mi>t</mi><mi>a</mi><mi>l</mi></mrow></msub><mo>⋅</mo><mi>π</mi><mspace width="1.0em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="1.0em"></mspace><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><msub><mi>N</mi><mrow><mi>t</mi><mi>o</mi><mi>t</mi><mi>a</mi><mi>l</mi></mrow></msub><mo>⋅</mo><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>π</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
-N_{Se} = N_{total} \cdot \pi
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><msub><mi>N</mi><mrow><mi>t</mi><mi>o</mi><mi>t</mi><mi>a</mi><mi>l</mi></mrow></msub><mo>⋅</mo><mi>π</mi><mspace width="1.0em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="1.0em"></mspace><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><msub><mi>N</mi><mrow><mi>t</mi><mi>o</mi><mi>t</mi><mi>a</mi><mi>l</mi></mrow></msub><mo>⋅</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>π</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N_{Se} = N_{total} \cdot \pi
 \quad\text{and}\quad
-N_{Sp} = N_{total} \cdot (1 - \pi)
-</annotation></semantics></math></p>
+N_{Sp} = N_{total} \cdot (1 - \pi)</annotation></semantics></math></p>
 <p>For sensitivity:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></msub><mo>=</mo><mfrac><mrow><msqrt><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></msqrt><mrow><mo stretchy="true" form="prefix">|</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">|</mo></mrow><mo>−</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt></mrow><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt></mfrac></mrow><annotation encoding="application/x-tex">
-z_{\beta_{Se}} = \frac{\sqrt{N_{Se}}|Se_1 - Se_0|  - z_{1-\alpha}\sqrt{Se_0(1-Se_0)}}{\sqrt{Se_1(1-Se_1)}}
-</annotation></semantics></math></p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mi>Φ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
-Power_{Se} = \Phi(z_{\beta_{Se}})
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></msub><mo>=</mo><mfrac><mrow><msqrt><msub><mi>N</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></msqrt><mo stretchy="false" form="prefix">|</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">|</mo><mi>−</mi><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt></mrow><msqrt><mrow><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>e</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt></mfrac></mrow><annotation encoding="application/x-tex">z_{\beta_{Se}} = \frac{\sqrt{N_{Se}}|Se_1 - Se_0|  - z_{1-\alpha}\sqrt{Se_0(1-Se_0)}}{\sqrt{Se_1(1-Se_1)}}</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>=</mo><mi mathvariant="normal">Φ</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">Power_{Se} = \Phi(z_{\beta_{Se}})</annotation></semantics></math></p>
 <p>Similar for Specificity:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></msub><mo>=</mo><mfrac><mrow><msqrt><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></msqrt><mrow><mo stretchy="true" form="prefix">|</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">|</mo></mrow><mo>−</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt></mrow><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow></msqrt></mfrac></mrow><annotation encoding="application/x-tex">
-z_{\beta_{Sp}} = \frac{\sqrt{N_{Sp}}|Sp_1 - Sp_0| - z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}}{\sqrt{Sp_1(1-Sp_1)}}
-</annotation></semantics></math></p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mi>Φ</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
-Power_{Sp} = \Phi(z_{\beta_{Sp}})
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></msub><mo>=</mo><mfrac><mrow><msqrt><msub><mi>N</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></msqrt><mo stretchy="false" form="prefix">|</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">|</mo><mi>−</mi><msub><mi>z</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi></mrow></msub><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>0</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt></mrow><msqrt><mrow><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>S</mi><msub><mi>p</mi><mn>1</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow></msqrt></mfrac></mrow><annotation encoding="application/x-tex">z_{\beta_{Sp}} = \frac{\sqrt{N_{Sp}}|Sp_1 - Sp_0| - z_{1-\alpha}\sqrt{Sp_0(1-Sp_0)}}{\sqrt{Sp_1(1-Sp_1)}}</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub><mo>=</mo><mi mathvariant="normal">Φ</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>z</mi><msub><mi>β</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">Power_{Sp} = \Phi(z_{\beta_{Sp}})</annotation></semantics></math></p>
 <p>The resulting overall power is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>o</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub><mo>=</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>×</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow><annotation encoding="application/x-tex">
-Power_{overall} = Power_{Se} \times Power_{Sp}
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>o</mi><mi>v</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>l</mi><mi>l</mi></mrow></msub><mo>=</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>e</mi></mrow></msub><mo>×</mo><mi>P</mi><mi>o</mi><mi>w</mi><mi>e</mi><msub><mi>r</mi><mrow><mi>S</mi><mi>p</mi></mrow></msub></mrow><annotation encoding="application/x-tex">Power_{overall} = Power_{Se} \times Power_{Sp}</annotation></semantics></math></p>
 <p><strong>Remark</strong><br>
-Both functions rely on the same asymptotic normal approximation framework, ensuring mathematical consistency between sample size determination and power evaluation.</p>
+Sample size determination and power evaluation rely on the same asymptotic normal approximation framework, ensuring mathematical consistency. With <code>exact = TRUE</code> the power is the exact binomial rejection probability instead. It is a sawtooth function of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math>, so the sample size is found by a scan over integer <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> and <code>exact_rule</code> selects either the smallest <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> reaching the target (<code>"first"</code>) or the smallest <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> from which the power stays at or above the target (<code>"stays_above"</code>).</p>
 </div>
+</div>
+<div class="section level3">
+<h3 id="comparative-designs">Comparative designs<a class="anchor" aria-label="anchor" href="#comparative-designs"></a>
+</h3>
+<p><code><a href="reference/power.copr.comp.test.html">power.copr.comp.test()</a></code> handles studies comparing an experimental test with a comparator, for sensitivity and specificity, with superiority or non-inferiority hypotheses (<code>type.se</code>, <code>type.sp</code>, margins <code>delta.se</code>, <code>delta.sp</code>).</p>
+<ul>
+<li>
+<code>design = "unpaired"</code>: subjects are randomised to one of the two tests. The variance under the null is set by <code>variance</code> (<code>"null"</code>, <code>"pooled"</code> or <code>"unpooled"</code>).</li>
+<li>
+<code>design = "paired"</code>: all subjects receive both tests. The discordance probabilities <code>psi.d</code> and <code>psi.nd</code> must be given. Superiority uses the Miettinen formula and non-inferiority the Liu score method.</li>
+</ul>
+<p>The significance level <code>alpha</code> is one-sided (default 0.025) as for the single-test design. The overall power is again the product of the two endpoint powers.</p>
+</div>
+<div class="section level3">
+<h3 id="conventional-sample-size">Conventional sample size<a class="anchor" aria-label="anchor" href="#conventional-sample-size"></a>
+</h3>
+<p><code><a href="reference/ss.copr.conv.html">ss.copr.conv()</a></code> implements the conventional three-step approach of Stark et al. (2022). It calculates the number of diseased subjects needed for the sensitivity and the number of non-diseased subjects needed for the specificity, each with its own endpoint power. These are divided by the prevalence and by one minus the prevalence, and the maximum is taken. The endpoint with the smaller requirement is overpowered, so the overall power is typically above the target.</p>
+</div>
+<div class="section level3">
+<h3 id="empirical-simulated-power">Empirical (simulated) power<a class="anchor" aria-label="anchor" href="#empirical-simulated-power"></a>
+</h3>
+<p><code><a href="reference/power.copr.emp.html">power.copr.emp()</a></code> and <code><a href="reference/power.copr.comp.emp.html">power.copr.comp.emp()</a></code> give vectorised Monte Carlo estimates of the overall power for the single-test and the unpaired comparative design. They are used to check the analytic results and are not interchangeable, because the comparator is estimated in the unpaired design.</p>
 </div>
 </div>
 <div class="section level2">
@@ -315,51 +342,95 @@ Both functions rely on the same asymptotic normal approximation framework, ensur
 </h3>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/ss_opt_bin.html">ss_opt_bin</a></span><span class="op">(</span></span>
-<span>  se1 <span class="op">=</span> <span class="fl">0.85</span>, sp1 <span class="op">=</span> <span class="fl">0.85</span>,</span>
-<span>  se0 <span class="op">=</span> <span class="fl">0.70</span>, sp0 <span class="op">=</span> <span class="fl">0.65</span>,</span>
-<span>  alpha <span class="op">=</span> <span class="fl">0.025</span>,</span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/power.copr.test.html">power.copr.test</a></span><span class="op">(</span></span>
+<span>  power <span class="op">=</span> <span class="fl">0.80</span>,</span>
 <span>  prev <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span>  pwr <span class="op">=</span> <span class="fl">0.80</span></span>
+<span>  se.e <span class="op">=</span> <span class="fl">0.85</span>, se.min <span class="op">=</span> <span class="fl">0.70</span>,</span>
+<span>  sp.e <span class="op">=</span> <span class="fl">0.85</span>, sp.min <span class="op">=</span> <span class="fl">0.65</span>,</span>
+<span>  alpha <span class="op">=</span> <span class="fl">0.025</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">res</span></span>
-<span><span class="co">#&gt; $pwr_se</span></span>
-<span><span class="co">#&gt; [1] 0.820557</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $pwr_sp</span></span>
-<span><span class="co">#&gt; [1] 0.9749476</span></span>
+<span><span class="co">#&gt;      Single-test design (sample size calculation)</span></span>
+<span><span class="co">#&gt;               Wald normal approximation </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $N_se</span></span>
-<span><span class="co">#&gt; [1] 66.77915</span></span>
+<span><span class="co">#&gt;               n = 134</span></span>
+<span><span class="co">#&gt;           n_dis = 67</span></span>
+<span><span class="co">#&gt;        n_nondis = 67</span></span>
+<span><span class="co">#&gt;            prev = 0.5</span></span>
+<span><span class="co">#&gt;       sig.level = 0.025</span></span>
+<span><span class="co">#&gt;     alternative = one.sided</span></span>
+<span><span class="co">#&gt;           power = 0.8018057</span></span>
+<span><span class="co">#&gt;        power_se = 0.8220385</span></span>
+<span><span class="co">#&gt;        power_sp = 0.9753871</span></span>
+<span><span class="co">#&gt;       ci_method = wald</span></span>
+<span><span class="co">#&gt;           exact = FALSE</span></span>
+<span><span class="co">#&gt;    target_power = 0.8</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $N_sp</span></span>
-<span><span class="co">#&gt; [1] 66.77915</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $N_tot</span></span>
-<span><span class="co">#&gt; [1] 133.5583</span></span></code></pre></div>
+<span><span class="co">#&gt; NOTE: n is the total sample size.</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="achieved-power-for-fixed-sample-size">Achieved Power for Fixed Sample Size<a class="anchor" aria-label="anchor" href="#achieved-power-for-fixed-sample-size"></a>
 </h3>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="va">pow</span><span class="op">&lt;-</span><span class="fu"><a href="reference/power_opt_bin.html">power_opt_bin</a></span><span class="op">(</span></span>
-<span>  N <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">N_tot</span>,</span>
-<span>  se1 <span class="op">=</span> <span class="fl">0.85</span>,sp1 <span class="op">=</span> <span class="fl">0.85</span>, </span>
-<span>  se0 <span class="op">=</span> <span class="fl">0.70</span>,sp0 <span class="op">=</span> <span class="fl">0.65</span>,</span>
-<span>  alpha <span class="op">=</span> <span class="fl">0.025</span>,</span>
-<span>  prev <span class="op">=</span> <span class="fl">0.5</span></span>
+<span><span class="va">pow</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/power.copr.test.html">power.copr.test</a></span><span class="op">(</span></span>
+<span>  N <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">n</span>,</span>
+<span>  prev <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  se.e <span class="op">=</span> <span class="fl">0.85</span>, se.min <span class="op">=</span> <span class="fl">0.70</span>,</span>
+<span>  sp.e <span class="op">=</span> <span class="fl">0.85</span>, sp.min <span class="op">=</span> <span class="fl">0.65</span>,</span>
+<span>  alpha <span class="op">=</span> <span class="fl">0.025</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">pow</span></span>
-<span><span class="co">#&gt; $overall</span></span>
-<span><span class="co">#&gt; [1] 0.8</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $pwr_se</span></span>
-<span><span class="co">#&gt; [1] 0.820557</span></span>
+<span><span class="co">#&gt;      Single-test design (power calculation)</span></span>
+<span><span class="co">#&gt;            Wald normal approximation </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $pwr_sp</span></span>
-<span><span class="co">#&gt; [1] 0.9749476</span></span></code></pre></div>
+<span><span class="co">#&gt;               n = 134</span></span>
+<span><span class="co">#&gt;           n_dis = 67</span></span>
+<span><span class="co">#&gt;        n_nondis = 67</span></span>
+<span><span class="co">#&gt;            prev = 0.5</span></span>
+<span><span class="co">#&gt;       sig.level = 0.025</span></span>
+<span><span class="co">#&gt;     alternative = one.sided</span></span>
+<span><span class="co">#&gt;           power = 0.8018057</span></span>
+<span><span class="co">#&gt;        power_se = 0.8220385</span></span>
+<span><span class="co">#&gt;        power_sp = 0.9753871</span></span>
+<span><span class="co">#&gt;       ci_method = wald</span></span>
+<span><span class="co">#&gt;           exact = FALSE</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; NOTE: n is the total sample size.</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="comparative-design">Comparative Design<a class="anchor" aria-label="anchor" href="#comparative-design"></a>
+</h3>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/power.copr.comp.test.html">power.copr.comp.test</a></span><span class="op">(</span></span>
+<span>  power <span class="op">=</span> <span class="fl">0.80</span>,</span>
+<span>  prev <span class="op">=</span> <span class="fl">0.6</span>,</span>
+<span>  se.c <span class="op">=</span> <span class="fl">0.75</span>, se.e <span class="op">=</span> <span class="fl">0.85</span>,</span>
+<span>  sp.c <span class="op">=</span> <span class="fl">0.65</span>, sp.e <span class="op">=</span> <span class="fl">0.75</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;      Comparative unpaired design (sample size calculation)</span></span>
+<span><span class="co">#&gt;                    Wald normal approximation </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;               n = 909</span></span>
+<span><span class="co">#&gt;           n_dis = 545.4</span></span>
+<span><span class="co">#&gt;        n_nondis = 363.6</span></span>
+<span><span class="co">#&gt;            prev = 0.6</span></span>
+<span><span class="co">#&gt;       sig.level = 0.025</span></span>
+<span><span class="co">#&gt;     alternative = one.sided</span></span>
+<span><span class="co">#&gt;           power = 0.8003529</span></span>
+<span><span class="co">#&gt;        power_se = 0.9784401</span></span>
+<span><span class="co">#&gt;        power_sp = 0.8179886</span></span>
+<span><span class="co">#&gt;    target_power = 0.8</span></span>
+<span><span class="co">#&gt;         type.se = sup</span></span>
+<span><span class="co">#&gt;         type.sp = sup</span></span>
+<span><span class="co">#&gt;        variance = null</span></span>
+<span><span class="co">#&gt;           exact = FALSE</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; NOTE: n is the total sample size.</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -372,7 +443,6 @@ Both functions rely on the same asymptotic normal approximation framework, ensur
 </ul>
 </div>
 </div>
-
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -413,7 +483,7 @@ Both functions rely on the same asymptotic normal approximation framework, ensur
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
       </footer>
