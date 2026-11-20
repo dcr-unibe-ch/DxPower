@@ -1,4 +1,4 @@
-#' Optimal Sample Size Calculation for Co-Primary Diagnostic Accuracy Endpoints - Single-test design
+#' Optimal sample size calculation for co-primary diagnostic accuracy endpoints - Single-test design
 #'
 #' @description
 #' The function determines the minimal total sample size required to achieve
@@ -9,16 +9,16 @@
 #' Overall power is defined under an intersection–union testing (IUT)
 #' framework, meaning that both null hypotheses must be rejected for
 #' the study to be successful. Under this framework, the global Type I
-#' error rate is controlled at level \eqn{\alpha} without multiplicity
+#' error rate is controlled at level \eqn{\alpha}{alpha} without multiplicity
 #' adjustment.
 #'
 #' The calculation explicitly accounts for disease prevalence, which
 #' determines the expected number of diseased and non-diseased subjects.
 #'
 #' @details
-#' Let \eqn{\pi} denote the assumed disease prevalence. The study population
-#' is partitioned into diseased (\eqn{N_{Se} = N\pi}) and non-diseased
-#' (\eqn{N_{Sp} = N(1-\pi)}) independent subgroups.
+#' Let \eqn{\pi}{pi} denote the assumed disease prevalence. The study population
+#' is partitioned into diseased (\eqn{N_{\mathrm{Se}} = N\pi}{N_Se = N * pi}) and non-diseased
+#' (\eqn{N_{\mathrm{Sp}} = N(1-\pi)}{N_Sp = N * (1 - pi)}) independent subgroups.
 #'
 #' When prevalence is very low or very high, one subgroup may require
 #' substantially more subjects than the other. A naive calculation (e.g. taking
@@ -26,26 +26,36 @@
 #' therefore overpower one endpoint while the other determines the
 #' required total sample size.
 #'
-#' This function implements an optimal joint sample size calculation
-#' that balances both endpoints simultaneously. Endpoint-specific powers
-#' are allocated such that:
-#'
-#' \itemize{
-#'   \item the overall power equals the target value,
-#'   \item both endpoints imply the same required total sample size,
-#'   \item neither sensitivity nor specificity is unnecessarily overpowered.
-#' }
-#' Sample size formulas are based on large-sample normal approximations
+#' This function implements a joint sample size calculation that accounts
+#' for both endpoints simultaneously: the required total sample size is the
+#' smallest integer \eqn{N}{N} for which the overall power, as computed by
+#' \code{power_opt_bin()}, reaches the target. Neither sensitivity nor
+#' specificity is treated as the sole driver of the sample size.
+#' Power is based on large-sample normal approximations
 #' for binomial proportions using either:
 #' \itemize{
 #'   \item the Wald approximation on the probability scale, or
 #'   \item the logit-transformed normal approximation.
 #' }
 #'
-#' The endpoint-specific powers are determined numerically by solving
-#' a root-finding problem under the overall power constraint:
-#' \deqn{
-#' Power_{overall} = Power_{Se} \times Power_{Sp}.
+#' Overall power is the probability that both tests reject. Because the
+#' endpoints are independent, this equals
+#' \deqn{\mathrm{Power}_{\mathrm{Overall}} = \mathrm{Power}_{\mathrm{Se}} \times
+#'   \mathrm{Power}_{\mathrm{Sp}}.}{Power_Overall = Power_Se * Power_Sp.}
+#' Without \code{exact}, \eqn{N}{N} is found by doubling an upper bound and
+#' then bisection, since the asymptotic power is non-decreasing in \eqn{N}{N}.
+#'
+#' With \code{exact = TRUE} the power is the exact binomial probability that
+#' both tests reject. It is not monotone in \eqn{N}{N} (it is a sawtooth), so the
+#' bisection is replaced by a vectorised scan over integer \eqn{N}{N} in a window
+#' around the asymptotic solution (0.5 to 1.5 times, extended
+#' automatically if needed). Subgroup sizes are \code{round(N * prev)} and the
+#' remainder. \code{exact_rule} selects the sample size:
+#' \itemize{
+#'   \item \code{"first"}: the smallest \eqn{N}{N} reaching the target power.
+#'     The power may fall below the target again for slightly larger \eqn{N}{N}.
+#'   \item \code{"stays_above"}: the smallest \eqn{N}{N} from which the power
+#'     stays at or above the target for all larger \eqn{N}{N}.
 #' }
 #'
 #' The methodology follows the joint sample size framework for single-arm
@@ -66,20 +76,30 @@
 #' @param sp.e Specificity under alternative hypothesis
 #' @param sp.min Specificity under null hypothesis
 #' @param alpha Type I error level.
+#' @param exact If \code{TRUE}, use the exact binomial power instead of the
+#'   normal approximation (see Details). Default \code{FALSE}.
+#' @param exact_rule Only for \code{exact = TRUE}: \code{"first"} (default) or
+#'   \code{"stays_above"}, see Details.
 #' @param ci_method Normal approximation method: "wald" (default) or "logit".
 #' @param alternative "one.sided" (default) or "two.sided".
 #' @author Ainesh Sewak & Maia Muresan (DCR Bern)
-#' @importFrom stats approx pnorm qnorm spline
-#' @return An object of class "dx_bin" containing:
-#' \itemize{
-#'   \item design specifications(design specifications (alpha level, testing framework, CI method)
-#'   \item required total sample size,
-#'   \item subgroup sample sizes,
-#'   \item target overall power
-#'   \item allocated endpoint-specific powers.
-#'
+#' @return An object of class \code{"power.htest"}, a list with the elements:
+#' \describe{
+#'   \item{n}{Total sample size.}
+#'   \item{n_dis}{Total number of diseased subjects.}
+#'   \item{n_nondis}{Total number of non-diseased subjects.}
+#'   \item{prev}{Disease prevalence.}
+#'   \item{sig.level}{Type I error level.}
+#'   \item{alternative}{\code{"one.sided"} or \code{"two.sided"}.}
+#'   \item{power}{Overall power.}
+#'   \item{power_se}{Power for the sensitivity endpoint.}
+#'   \item{power_sp}{Power for the specificity endpoint.}
+#'   \item{ci_method}{Normal approximation used.}
+#'   \item{exact}{Whether exact binomial power was used.}
+#'   \item{target_power}{Requested power (only when \code{power} was given).}
+#'   \item{exact_rule}{Rule used (only for \code{exact = TRUE} and a given \code{power}).}
 #' }
-#' @export
+#' @noRd
 #' @examples
 #' # Example 1: Sample size calculation for a single diagnostic test
 #' # Objective: demonstrate that sensitivity and specificity exceed
@@ -122,115 +142,46 @@ ss_opt_bin <- function(power,
                        se.e,se.min,
                        sp.e,sp.min,
                        alpha = 0.025, ci_method=c("wald","logit"),
-                       alternative=c("one.sided","two.sided")) {
+                       alternative=c("one.sided","two.sided"),
+                       exact = FALSE,
+                       exact_rule = c("first", "stays_above")) {
 
   ci_method <- match.arg(ci_method)
   alternative<-match.arg(alternative)
+  exact_rule <- match.arg(exact_rule)
 
   # -----------------------------
   # Input validation
   # -----------------------------
-  if (power <= 0 || power >= 1)stop("pwr must be between 0 and 1.")
-  if (prev <= 0 || prev >= 1)stop("Prevalence must be between 0 and 1.")
-  if (se.e <= se.min)stop("se.e must be greater than se.min for superiority testing.")
-  if (sp.e <= sp.min)stop("sp.e must be greater than sp.min for superiority testing.")
-  if (alpha <= 0 || alpha >= 1)stop("alpha must be between 0 and 1.")
+  check_inputs(power = power, prev = prev, alpha = alpha)
+  check_single(se.e, se.min, sp.e, sp.min)
 
-  # -----------------------------
-  # Common quantities
-  # -----------------------------
-  #critical value
-  z_alpha <- if (alternative == "one.sided") {
-    qnorm(1 - alpha)
-  } else {
-    qnorm(1 - alpha/2)
+  # smallest total N such that the joint power >= power
+  pwr_at <- function(N, exact = FALSE) {
+    power_opt_bin(N = N, prev = prev,
+                  se.e = se.e, se.min = se.min,
+                  sp.e = sp.e, sp.min = sp.min,
+                  alpha = alpha, ci_method = ci_method,
+                  alternative = alternative, exact = exact)
   }
 
-  logit <- function(p) log(p / (1 - p))
-  # -----------------------------
-  # Define scale-specific quantities
-  # -----------------------------
-  if (ci_method == "wald") {
+  N <- find_n(function(N) pwr_at(N)$power, power)
 
-    d_se <- se.e - se.min
-    d_sp <- sp.e - sp.min
-
-    v_se.min <- se.min * (1 - se.min)
-    v_se.e <- se.e * (1 - se.e)
-
-    v_sp.min <- sp.min * (1 - sp.min)
-    v_sp.e <- sp.e * (1 - sp.e)
-
-  } else if (ci_method == "logit") {
-
-    d_se <- logit(se.e) - logit(se.min)
-    d_sp <- logit(sp.e) - logit(sp.min)
-
-    v_se.min <- 1 / (se.min * (1 - se.min))
-    v_se.e <- 1 / (se.e * (1 - se.e))
-
-    v_sp.min <- 1 / (sp.min * (1 - sp.min))
-    v_sp.e <- 1 / (sp.e * (1 - sp.e))
-
+  if (exact) {
+    z_alpha <- z_critical(alpha, alternative)
+    exact_pw <- function(N) {
+      ex <- exact_power_bin(N, prev, se.e, se.min, sp.e, sp.min,
+                            z_alpha, ci_method)
+      ex$power_se * ex$power_sp
+    }
+    N <- exact_n(exact_pw, power, N_asym = N, rule = exact_rule)
   }
+  result <- pwr_at(N, exact = exact)
 
-  # Define function for root finding
-  root_fun <- function(power_se) {
-    beta_sp <- (power_se - power) / power_se
-    power_sp  <- 1 - beta_sp
-    qpower_se <- qnorm(power_se)
-    qpower_sp <- qnorm(power_sp)
-    n_se <- (z_alpha * sqrt(v_se.min) +
-               qpower_se * sqrt(v_se.e))^2 /
-      (prev * d_se^2)
-
-    n_sp <- (z_alpha * sqrt(v_sp.min) +
-               qpower_sp * sqrt(v_sp.e))^2 /
-      ((1 - prev) * d_sp^2)
-    return(n_se - n_sp)
-  }
-
-  # Search for root using splines
-  eps <- 1e-6
-  grd <- seq(power + eps , 1 - eps, length.out = 100000)
-  s <- spline(grd, root_fun(grd))
-  power_se <- approx(x = s$y, y = s$x, xout = 0)$y
-  beta_sp <- (power_se - power) / power_se
-  power_sp <- 1 - beta_sp
-
-  # Compute z-scores
-  qpower_se <- qnorm(power_se)
-  qpower_sp <- qnorm(power_sp)
-
-  # Sample sizes without prevalence
-  N_se <- (z_alpha * sqrt(v_se.min) +
-             qpower_se * sqrt(v_se.e))^2 /
-    (d_se^2)
-
-  N_sp <- (z_alpha * sqrt(v_sp.min) +
-             qpower_sp * sqrt(v_sp.e))^2 /
-    (d_sp^2)
-
-  result <- list(
-    alternative=alternative,
-    alpha = alpha,
-    hypothesis=list(
-      sensitivity = "sup",
-      specificity = "sup"
-    ),
-    design  = "single-test design",
-    analysis = "samplesize",
-    ci_method = ci_method,
-    target_power = power,
-    power_se = power_se,
-    power_sp = power_sp,
-    N_se = N_se,
-    N_sp = N_sp,
-    N_tot = N_se + N_sp,
-    prev = prev
-  )
-
-  class(result) <- "dx_bin"
-  return(result)
+  result$method <- power_method("Single-test design",
+                                single_approx(ci_method, exact), "samplesize")
+  result$target_power <- power
+  if (exact) result$exact_rule <- exact_rule
+  result
 }
 

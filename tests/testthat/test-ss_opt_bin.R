@@ -10,6 +10,6 @@ test_that("ss_opt_bin returns correct structure", {
     power=0.8
   )
 
-  expect_s3_class(res, "dx_bin")
-  expect_true(all(c("power_se","power_sp","N_se","N_sp","N_tot") %in% names(res)))
+  expect_s3_class(res, "power.htest")
+  expect_true(all(c("power_se","power_sp","n_dis","n_nondis","n") %in% names(res)))
 })

@@ -57,6 +57,16 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # R-devel has no macOS binaries, so svglite is built from source and needs libpng
+      - name: Install system libraries (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install libpng pkg-config
+          # R only searches /opt/R/arm64; point source builds at Homebrew too
+          mkdir -p ~/.R
+          echo "CPPFLAGS += -I$(brew --prefix)/include" >> ~/.R/Makevars
+          echo "LDFLAGS += -L$(brew --prefix)/lib" >> ~/.R/Makevars
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: rcmdcheck
